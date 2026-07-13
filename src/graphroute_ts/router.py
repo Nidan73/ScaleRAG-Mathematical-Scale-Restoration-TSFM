@@ -62,8 +62,29 @@ def origin_stats(sales: np.ndarray, o: int, context: int = 56, horizon: int = 28
     )
 
 
+def temporal_features(stats: OriginStats, t: int, cand: np.ndarray) -> np.ndarray:
+    """Data-agnostic temporal/statistical features (n_cand, 8). Reused across
+    datasets (M5, Favorita) — only the relation features differ."""
+    temporal_l2 = np.linalg.norm(stats.znorm[cand] - stats.znorm[t], axis=1)
+    scale_ratio = np.log((stats.mean[t] + 1.0) / (stats.mean[cand] + 1.0))
+    seasonal = stats.weekly[cand] @ stats.weekly[t]  # cosine of weekly profiles
+    return np.stack(
+        [
+            temporal_l2,
+            scale_ratio,
+            np.abs(scale_ratio),
+            np.full(cand.shape, stats.zerofrac[t]),
+            stats.zerofrac[cand],
+            np.full(cand.shape, np.log(stats.mean[t] + 1.0)),
+            np.log(stats.mean[cand] + 1.0),
+            seasonal,
+        ],
+        axis=1,
+    )
+
+
 def features(stats: OriginStats, graph: HeteroGraph, t: int, cand: np.ndarray) -> np.ndarray:
-    """Feature matrix (n_cand, n_features) for target ``t`` vs candidate series."""
+    """M5 feature matrix (n_cand, 14): 6 relation + 8 temporal."""
     same_item = (graph.item[cand] == graph.item[t]).astype(np.float64)
     same_store = (graph.store[cand] == graph.store[t]).astype(np.float64)
     same_cat = (graph.cat[cand] == graph.cat[t]).astype(np.float64)
@@ -74,26 +95,8 @@ def features(stats: OriginStats, graph: HeteroGraph, t: int, cand: np.ndarray) -
         2.0,
         np.where((same_cat > 0) | (same_dept > 0), 4.0, 6.0),
     )
-    temporal_l2 = np.linalg.norm(stats.znorm[cand] - stats.znorm[t], axis=1)
-    scale_ratio = np.log((stats.mean[t] + 1.0) / (stats.mean[cand] + 1.0))
-    seasonal = stats.weekly[cand] @ stats.weekly[t]  # cosine of weekly profiles
-    cols = [
-        same_item,
-        same_store,
-        same_cat,
-        same_dept,
-        same_state,
-        graph_dist,
-        temporal_l2,
-        scale_ratio,
-        np.abs(scale_ratio),
-        np.full(cand.shape, stats.zerofrac[t]),
-        stats.zerofrac[cand],
-        np.full(cand.shape, np.log(stats.mean[t] + 1.0)),
-        np.log(stats.mean[cand] + 1.0),
-        seasonal,
-    ]
-    return np.stack(cols, axis=1)
+    rel = np.stack([same_item, same_store, same_cat, same_dept, same_state, graph_dist], axis=1)
+    return np.hstack([rel, temporal_features(stats, t, cand)])
 
 
 def utility(stats: OriginStats, t: int, cand: np.ndarray) -> np.ndarray:

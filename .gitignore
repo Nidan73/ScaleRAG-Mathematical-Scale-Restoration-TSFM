@@ -70,6 +70,8 @@ data/processed/*
 *.hdf5
 *.duckdb
 *.sqlite
+*.zip
+*.7z
 
 # ---------------------------------------------------------------------------
 # Model checkpoints, weights & experiment artifacts
