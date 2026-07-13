@@ -1,0 +1,114 @@
+# ---------------------------------------------------------------------------
+# Secrets & credentials — NEVER commit
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.p12
+credentials/
+secrets/
+.secrets/
+.kaggle/
+kaggle.json
+.huggingface/
+hf_token*
+*.token
+.netrc
+
+# Claude Code local (machine-specific) settings & MCP auth
+.claude/settings.local.json
+.claude/.mcp.local.json
+.mcp.local.json
+.claude/mcp-auth*
+.claude/*.local.*
+
+# ---------------------------------------------------------------------------
+# Python environments & caches
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+.hypothesis/
+
+# uv keeps uv.lock TRACKED (reproducibility). Do not ignore uv.lock.
+
+# ---------------------------------------------------------------------------
+# Data — raw & processed datasets must NOT be committed
+# ---------------------------------------------------------------------------
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+*.parquet
+*.arrow
+*.feather
+*.csv
+*.tsv
+*.npz
+*.npy
+*.h5
+*.hdf5
+*.duckdb
+*.sqlite
+
+# ---------------------------------------------------------------------------
+# Model checkpoints, weights & experiment artifacts
+# ---------------------------------------------------------------------------
+artifacts/*
+!artifacts/.gitkeep
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.bin
+checkpoints/
+wandb/
+mlruns/
+outputs/
+
+# ---------------------------------------------------------------------------
+# Logs & reports (keep dirs, ignore heavy contents)
+# ---------------------------------------------------------------------------
+logs/*
+!logs/.gitkeep
+*.log
+reports/*.html
+reports/*.pdf
+!reports/.gitkeep
+
+# ---------------------------------------------------------------------------
+# HF / model caches
+# ---------------------------------------------------------------------------
+.hf_cache/
+transformers_cache/
+hf_home/
+
+# ---------------------------------------------------------------------------
+# OS / editor cruft
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

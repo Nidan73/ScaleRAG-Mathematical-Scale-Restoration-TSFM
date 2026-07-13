@@ -1,0 +1,85 @@
+# GraphRoute-TS
+
+**Relation-Aware Context Retrieval for Parameter-Efficient Time-Series Foundation Models.**
+
+Research codebase investigating whether relation-aware retrieval of supporting
+context (via a learned graph router) improves parameter-efficient adaptation of
+time-series foundation models (TSFMs) on forecasting benchmarks (primarily M5).
+
+> **Status:** Phase 1 — environment & scaffolding. No datasets, models, or
+> training yet. See `docs/project-status.md` and the research rules in `CLAUDE.md`.
+
+## Requirements
+
+- Linux (developed on CachyOS/Arch), NVIDIA GPU with recent driver (RTX 5070 Ti,
+  Blackwell/sm_120, CUDA 13.x here).
+- [`uv`](https://docs.astral.sh/uv/) for environment management.
+- Python 3.11 (provisioned automatically by `uv` — pinned in `.python-version`).
+
+## Install dependencies
+
+```bash
+# uv provisions Python 3.11 and creates a project-local .venv from the lockfile.
+uv sync --extra ml --extra retrieval --extra tsfm
+```
+
+`torch` is pulled from the CUDA 13.0 (`cu130`) index configured in `pyproject.toml`
+to match the Blackwell GPU. Heavy optional groups (`graph`, `gpu-retrieval`) are
+defined but intentionally **not** installed yet.
+
+## Activate the environment (Fish)
+
+```fish
+source .venv/bin/activate.fish
+```
+
+<details><summary>bash / zsh</summary>
+
+```bash
+source .venv/bin/activate
+```
+</details>
+
+Or prefix any command with `uv run` (no activation needed), e.g. `uv run pytest`.
+
+## Verify GPU support
+
+```bash
+uv run python scripts/environment_check.py      # full pass/fail report
+uv run python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+## Fast checks
+
+```bash
+make check      # format + lint + type + unit + leakage
+make verify     # environment health check
+make test       # unit tests
+make leakage    # leakage / split-integrity tests
+make smoke      # environment smoke tests
+```
+
+## Start Jupyter
+
+```bash
+make jupyter    # or: uv run jupyter lab
+```
+
+## Project skills (Claude Code)
+
+Invoke inside Claude Code:
+
+| Skill | Purpose |
+|-------|---------|
+| `/environment-check` | Verify the dev environment (read-only). |
+| `/data-audit` | Audit a dataset (schema, missing, ordering, leakage hints). |
+| `/leakage-audit` | Enforce chronological-split & retrieval-horizon integrity. |
+| `/baseline-run` | Run one small **declared** baseline (refuses full-scale runs). |
+| `/experiment-review` | Audit an experiment for soundness & reproducibility. |
+| `/research-code-review` | Review code for correctness, leakage, reproducibility. |
+
+## Layout
+
+See `CLAUDE.md` for the full architecture, environment commands, and the
+non-negotiable research rules. Data, checkpoints, artifacts, logs, and secrets are
+never committed (`.gitignore`).

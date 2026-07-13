@@ -1,0 +1,15 @@
+# Example declared baseline config (chronological split). Validated by
+# graphroute_ts.config.ExperimentConfig. Boundaries are illustrative M5 dates.
+name: baseline_seasonal_naive_m5
+seed: 42
+data:
+  dataset: m5
+  freq: D
+  target: sales
+split:
+  train_end: "2016-03-27"   # inclusive last training day
+  val_end: "2016-04-24"     # inclusive last validation day
+  horizon: 28               # H (days)
+model:
+  kind: seasonal_naive
+  season_length: 7
