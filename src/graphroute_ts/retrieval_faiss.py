@@ -97,9 +97,23 @@ class ScaleAwareIndex:
         self.meta = {c: codes(c) for c in ("store_id", "cat_id", "dept_id")}
         self.entities = entities
         self.fallback_count = 0  # times retrieval was empty -> constant fallback
+        # candidates are grouped contiguously by series (WindowDatabase build order),
+        # enabling O(1) per-series candidate ranges for graph-restricted retrieval.
+        n_ser = entities.height
+        self._ser_start = np.searchsorted(db.series_idx, np.arange(n_ser), side="left")
+        self._ser_end = np.searchsorted(db.series_idx, np.arange(n_ser), side="right")
 
     def reset_stats(self) -> None:
         self.fallback_count = 0
+
+    def candidates_for_series(self, series_ids: np.ndarray) -> np.ndarray:
+        """Candidate ids belonging to the given series (graph-restricted pool)."""
+        parts = [
+            np.arange(self._ser_start[s], self._ser_end[s])
+            for s in series_ids
+            if self._ser_end[s] > self._ser_start[s]
+        ]
+        return np.concatenate(parts) if parts else np.empty(0, dtype=int)
 
     def _query_vec(self, query_window: np.ndarray):
         import faiss
@@ -132,15 +146,25 @@ class ScaleAwareIndex:
         k: int,
         query_series_idx: int | None = None,
         meta_filter: str | None = None,
+        allowed_series: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Return (candidate_ids, distances, query_params). Enforces rule 3."""
+        """Return (candidate_ids, distances, query_params). Enforces rule 3.
+
+        ``allowed_series`` restricts the candidate pool to those series (graph-
+        guided retrieval, Phase 6) — takes precedence over ``meta_filter``.
+        """
         qv, qp = self._query_vec(query_window)
-        allowed = self._allowed(origin, query_series_idx, meta_filter)
-        allowed_ids = np.flatnonzero(allowed)
+        if allowed_series is not None:
+            cand = self.candidates_for_series(allowed_series)
+            legal = self.db.legal_mask(origin)
+            allowed_ids = cand[legal[cand]] if cand.size else cand
+        else:
+            allowed = self._allowed(origin, query_series_idx, meta_filter)
+            allowed_ids = np.flatnonzero(allowed)
         if allowed_ids.size == 0:
             return np.empty(0, int), np.empty(0), qp
 
-        if meta_filter is None:
+        if meta_filter is None and allowed_series is None:
             # global FAISS search; over-fetch then filter to legal ids.
             over = min(len(self.db), max(k * 4, k + 64))
             dist, idx = self.index.search(qv, over)
@@ -172,9 +196,12 @@ class ScaleAwareIndex:
         query_series_idx: int | None = None,
         meta_filter: str | None = None,
         restore_scale: bool = True,
+        allowed_series: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """k-NN forecast with optional scale restoration of continuations."""
-        ids, _d, qp = self.search(query_window, origin, k, query_series_idx, meta_filter)
+        ids, _d, qp = self.search(
+            query_window, origin, k, query_series_idx, meta_filter, allowed_series
+        )
         if ids.size == 0:
             self.fallback_count += 1
             base = np.clip(np.full(horizon, float(query_window.mean())), 0.0, None)
