@@ -68,6 +68,27 @@ def rmsse(y_true: ArrayLike, y_pred: ArrayLike, insample: ArrayLike, seasonality
     return float(np.sqrt(np.mean((yt - yp) ** 2) / scale))
 
 
+def pinball_loss(
+    y_true: ArrayLike, quantile_preds: np.ndarray, quantile_levels: list[float]
+) -> float:
+    """Mean pinball (quantile) loss over horizon and quantile levels.
+
+    ``y_true`` is (H,); ``quantile_preds`` is (H, Q) aligned with
+    ``quantile_levels`` (length Q). Lower is better.
+    """
+    yt = _asarray(y_true)
+    qp = np.asarray(quantile_preds, dtype=np.float64)
+    if qp.shape != (yt.shape[0], len(quantile_levels)):
+        raise ValueError(
+            f"quantile_preds shape {qp.shape} != ({yt.shape[0]}, {len(quantile_levels)})"
+        )
+    losses = []
+    for i, q in enumerate(quantile_levels):
+        err = yt - qp[:, i]
+        losses.append(np.mean(np.maximum(q * err, (q - 1) * err)))
+    return float(np.mean(losses))
+
+
 def summary(
     y_true: ArrayLike, y_pred: ArrayLike, insample: ArrayLike, seasonality: int = 1
 ) -> dict[str, float]:
