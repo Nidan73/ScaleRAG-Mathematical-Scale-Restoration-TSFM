@@ -1,15 +1,11 @@
-# Example declared baseline config (chronological split). Validated by
-# graphroute_ts.config.ExperimentConfig. Boundaries are illustrative M5 dates.
-name: baseline_seasonal_naive_m5
-seed: 42
-data:
-  dataset: m5
-  freq: D
-  target: sales
-split:
-  train_end: "2016-03-27"   # inclusive last training day
-  val_end: "2016-04-24"     # inclusive last validation day
-  horizon: 28               # H (days)
-model:
-  kind: seasonal_naive
-  season_length: 7
+# Seasonal Naive baseline — small declared smoke run (Phase 2).
+# Evaluated on the `val` split (forecast d_1886–d_1913) so `test` stays held out.
+name: seasonal_naive_smoke
+baseline: seasonal_naive
+processed_dir: data/processed
+last_labeled_day: 1941   # public M5 labels; splits derive from this
+n_earlier_val: 2
+split: val
+subset: 24               # small declared subset (synthetic fixture has 24 series)
+seed: 42                 # deterministic; seasonal naive has no stochastic seed
+params: {}

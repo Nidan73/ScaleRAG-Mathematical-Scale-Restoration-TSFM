@@ -78,6 +78,29 @@ Invoke inside Claude Code:
 | `/experiment-review` | Audit an experiment for soundness & reproducibility. |
 | `/research-code-review` | Review code for correctness, leakage, reproducibility. |
 
+## M5 pipeline & baselines (Phase 2)
+
+Developed against a deterministic **synthetic** M5 fixture (offline); the same
+code path runs on real M5 once the files are in `data/raw/`. See
+`docs/m5-data-design.md`, `docs/m5-split-policy.md`, `docs/processed-schema.md`,
+and `docs/baseline-report.md`.
+
+```bash
+# 1) build + ingest the offline synthetic fixture (idempotent)
+uv run python scripts/make_synthetic.py --days 1941 --raw data/raw_synth --processed data/processed
+
+# 2) verify chronological-split integrity
+uv run python scripts/leakage_audit.py --spec configs/split_check_val.json
+
+# 3) declare, then run the classical baselines (val split; test held out)
+uv run python scripts/baseline_run.py --config configs/baseline_seasonal_naive.yaml --dry-run
+uv run python scripts/baseline_run.py --config configs/baseline_seasonal_naive.yaml --confirm
+uv run python scripts/baseline_run.py --config configs/baseline_lightgbm.yaml --confirm
+```
+
+Real M5 ingestion (once files are present in `data/raw/`) uses the identical
+`ingest_m5` path — validate first, then point a config's `processed_dir` at it.
+
 ## Layout
 
 See `CLAUDE.md` for the full architecture, environment commands, and the

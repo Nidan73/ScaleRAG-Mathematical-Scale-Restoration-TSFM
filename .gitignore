@@ -93,8 +93,9 @@ outputs/
 logs/*
 !logs/.gitkeep
 *.log
-reports/*.html
-reports/*.pdf
+# reports/ holds regenerable run artifacts (baseline/leakage/data-audit outputs
+# with per-run timestamps + git fingerprints). Curated reports live in docs/.
+reports/*
 !reports/.gitkeep
 
 # ---------------------------------------------------------------------------

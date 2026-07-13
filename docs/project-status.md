@@ -53,7 +53,29 @@ Verified via `uv run pytest -q` (33 passed) plus the two script-level checks:
 
 Checks: `ruff format` clean · `ruff check` clean · `mypy` clean · 33 tests pass.
 
-## Next coding task (after this phase)
+## Phase 2 — M5 pipeline & classical baselines (DONE, synthetic data)
 
-M5 data ingestion + chronological split scaffolding, guarded by `/leakage-audit`
-and the leakage tests — **not started** (do not begin until this phase is verified).
+Implemented the leakage-safe M5 pipeline and the two classical baselines. Built
+and validated against a deterministic synthetic M5-shaped fixture (24 series);
+the real M5 has **not** been downloaded (declaration pending user approval).
+
+- [x] Idempotent M5 ingestion (Polars/PyArrow → Parquet); schema validation.
+- [x] Entities vs dynamics separation.
+- [x] Chronological rolling splits through d_1941 (val d_1886–1913, test d_1914–1941,
+      + val_m1/val_m2 earlier origins).
+- [x] Train-only fitted transforms; leakage guard test on horizon corruption.
+- [x] Metrics: MAE, WAPE, MASE, RMSSE, official-style WRMSSE (12 levels).
+- [x] Baselines: Seasonal Naive + LightGBM (Tweedie), reproducible over seeds.
+- [x] Docs: `m5-data-design.md`, `m5-split-policy.md`, `processed-schema.md`,
+      `baseline-report.md`; baseline configs; reproducible CLI commands.
+- [x] 61 tests pass (unit + leakage + integration); ruff + mypy clean.
+- [x] End-to-end declared smoke run passes (WRMSSE: naive 0.980 vs LightGBM 0.670±0.003).
+
+**Out of scope / not started (rule 11):** Chronos-2/TSFM, retrieval, graphs, LoRA,
+ARM, neural training. Real M5 download awaits approval (see `docs/m5-data-design.md`).
+
+## Next coding task (after real-data approval)
+
+Run the identical pipeline on **real M5** (download declared, then ingest with
+streaming for the full 30,490-series panel), reproduce the baselines on the real
+`val` split, and record them as the reference numbers before any TSFM work begins.
