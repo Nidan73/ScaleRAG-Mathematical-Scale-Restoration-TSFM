@@ -35,7 +35,9 @@ FEATURE_COLS: list[str] = [
     "series_train_mean",
 ]
 TARGET = "sales"
-_ENTITY_JOIN_COLS = ("id", "item_id", "store_id", "state_id", "dept_id", "cat_id")
+# Only item_id is needed (id is already on the dynamic panel). Joining the full
+# entity set would add 4 unused string columns x tens of millions of rows.
+_ENTITY_JOIN_COLS = ("id", "item_id")
 
 
 @dataclass

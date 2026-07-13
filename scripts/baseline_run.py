@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import resource
 import statistics
 import sys
 import time
@@ -57,7 +58,14 @@ def declare(cfg: M5BaselineConfig, split) -> None:
     print("  metrics         : MAE, WAPE, MASE, RMSSE, WRMSSE (official-style)")
     print(f"  seed(s)         : {seeds}")
     print(f"  expected output : reports/baseline-{cfg.name}.json , reports/baseline-{cfg.name}.md")
-    print("  approx compute  : CPU-only, < 1 min, < 2 GiB RAM (small subset)")
+    if cfg.subset is None:
+        n_runs = len(seeds)
+        print(
+            f"  approx compute  : FULL real M5 (~30.5k series) x {n_runs} seed(s); "
+            "CPU-only; ~1-4 min/seed; peak RAM up to ~25 GiB (eager pipeline)"
+        )
+    else:
+        print(f"  approx compute  : {cfg.subset}-series subset; CPU-only; < 1 min; < 4 GiB RAM")
     print("=" * 70)
 
 
@@ -76,6 +84,7 @@ def run(cfg: M5BaselineConfig, split) -> dict:
         )
         per_seed.append(rep)
     runtime = time.perf_counter() - t0
+    peak_rss_gib = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 / 1024, 2)
 
     # Aggregate metrics across seeds (mean + stdev for dispersion; rule 6).
     keys = per_seed[0]["metrics"].keys()
@@ -97,6 +106,7 @@ def run(cfg: M5BaselineConfig, split) -> dict:
         "n_series": per_seed[0]["n_series"],
         "metrics_aggregated": agg,
         "runtime_sec": round(runtime, 2),
+        "peak_rss_gib": peak_rss_gib,
         "run_context": per_seed[0]["run_context"],
         "wrmsse_per_level": per_seed[0]["wrmsse_per_level"],
     }
@@ -116,7 +126,8 @@ def write_reports(result: dict) -> tuple[Path, Path]:
         f"- Model: `{result['baseline']}` | split: `{result['split']['name']}` "
         f"(forecast d_{result['split']['h_start']}-d_{result['split']['h_end']})",
         f"- Series: {result['n_series']} | seeds: {result['seeds']} | "
-        f"runtime: {result['runtime_sec']}s",
+        f"runtime: {result['runtime_sec']}s | peak RSS: {result.get('peak_rss_gib', '?')} GiB",
+        f"- Git commit: `{result['run_context'].get('git_commit', '?')}`",
         "",
         "| Metric | Mean | Stdev |",
         "|--------|------|-------|",

@@ -9,6 +9,7 @@ days beyond the split horizon.
 
 from __future__ import annotations
 
+import gc
 from pathlib import Path
 from typing import Any
 
@@ -88,7 +89,11 @@ def evaluate(
         model_info = {"kind": "seasonal_naive", "season": 7}
     elif baseline == "lightgbm":
         features, _stats = build_features(dynamic, entities, split)
+        del dynamic  # 59M-row panel no longer needed; matrices already built
+        gc.collect()
         preds, _model = lightgbm_model.fit_predict(features, split, params=params, seed=seed)
+        del features
+        gc.collect()
         model_info = {
             "kind": "lightgbm",
             "params": {**lightgbm_model.DEFAULT_PARAMS, **(params or {})},

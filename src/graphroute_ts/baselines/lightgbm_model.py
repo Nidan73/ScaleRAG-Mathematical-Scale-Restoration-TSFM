@@ -8,6 +8,8 @@ clipped at 0 (sales are non-negative). Deterministic given ``seed``.
 
 from __future__ import annotations
 
+import gc
+import warnings
 from typing import Any
 
 import lightgbm as lgb
@@ -45,14 +47,21 @@ def fit_predict(
     if tr.height == 0:
         raise ValueError(f"{split.name}: no training rows with defined lags.")
 
-    # named frames (fit + predict) keep feature names consistent — no warnings.
-    x_tr = tr.select(FEATURE_COLS).to_pandas()
-    y_tr = tr.select(TARGET).to_numpy().ravel().astype(np.float64)
+    # float32 matrices (half the memory of float64) — matters at full-M5 scale
+    # (~56M training rows). Free the Polars training frame before fitting.
+    x_tr = tr.select(FEATURE_COLS).to_numpy().astype(np.float32)
+    y_tr = tr.select(TARGET).to_numpy().ravel().astype(np.float32)
+    del tr
+    gc.collect()
 
-    model = lgb.LGBMRegressor(random_state=seed, **p)
-    model.fit(x_tr, y_tr)
+    with warnings.catch_warnings():
+        # numpy input has no feature names — cosmetic sklearn warning only.
+        warnings.filterwarnings("ignore", message="X does not have valid feature names")
+        model = lgb.LGBMRegressor(random_state=seed, **p)
+        model.fit(x_tr, y_tr)
 
-    x_hz = hz.select(FEATURE_COLS).to_pandas()
-    y_hat = np.clip(model.predict(x_hz), a_min=0.0, a_max=None)
-    preds = hz.select("id", "day_idx").with_columns(pl.Series("y_pred", y_hat))
+        ids_days = hz.select("id", "day_idx")
+        x_hz = hz.select(FEATURE_COLS).to_numpy().astype(np.float32)
+        y_hat = np.clip(model.predict(x_hz), a_min=0.0, a_max=None)
+    preds = ids_days.with_columns(pl.Series("y_pred", y_hat))
     return preds, model
