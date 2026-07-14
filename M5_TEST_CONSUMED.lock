@@ -1,0 +1,7 @@
+{
+  "consumed_at": "2026-07-14T06:57:50.346456+00:00",
+  "commit": "d42d20e3bc4d6096f82349d16284b5b6da00346f",
+  "eval_window": "d_1914-d_1941",
+  "report": "scalerag-heldout-test-30490.json",
+  "note": "M5 test split d_1914-d_1941 consumed by the single locked Phase-10 run. No further test-driven tuning (rules 2, 9, 12)."
+}

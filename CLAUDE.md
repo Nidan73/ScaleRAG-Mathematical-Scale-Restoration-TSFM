@@ -15,7 +15,7 @@ Foundation Models** — augment a **frozen** Chronos-2 backbone with scale-aware
 temporal retrieval + a learned uncertainty-aware **gated fusion**. The cross-dataset
 graph-routing negative is a secondary empirical contribution.
 
-## Current status (Phases 1–9 complete)
+## Current status (Phases 1–10 complete)
 
 - Controlled study **finished**; method + hyperparameters **frozen**.
 - **Frozen config:** `ScaleRAG_gated` = mean/L2/category-filter/k=20 + scale
@@ -25,12 +25,28 @@ graph-routing negative is a secondary empirical contribution.
   **+4.86%** RMSSE on M5 (CI [4.30,5.39]) but only **+0.83%** on denser Favorita
   (regime-dependent); it **ties** the strongest simple baseline (LightGBM/recent-mean)
   and **fails all 3 pre-registered success criteria** → framed as a controlled study.
-- **M5 test split `d_1914–d_1941` is UNTOUCHED** — reserved for a single final
-  confirmation run, only after (now-complete) freezing, and only when authorized.
+- **M5 test split `d_1914–d_1941` is CONSUMED** (Phase 10, commit `d42d20e`,
+  `M5_TEST_CONSUMED.lock`). The single locked full-panel run **confirmed** the
+  frozen verdict on untouched data: ScaleRAG **+5.49%** RMSSE over Chronos-2
+  (CI [5.40,5.59]) but **+0.69%** over strongest (lightgbm, <3% bar), loses the
+  official **WRMSSE** to lightgbm/seasonal-naive, and is beaten by frozen Chronos-2
+  on MAE/WAPE/MASE/pinball/coverage → **0/3 criteria met**. **Do NOT re-run the test**
+  (harness `scripts/scalerag_test_final.py` refuses while the lock exists); further
+  test-driven tuning is blocked (rules 2, 9, 12).
+- **Full-panel scale-up:** `src/graphroute_ts/retrieval_gpu.py` is a GPU batched-exact
+  k-NN, verified **bit-identical** to the frozen numpy retriever
+  (`scripts/verify_gpu_retrieval.py`, max diff 0.0) — arithmetic acceleration only,
+  no method change.
 - **Paper artifacts:** `docs/scalerag-ts-method.md`, `docs/scalerag-ts-validation-report.md`,
   `docs/final-experiment-report.md`, `docs/ablation-report.md`,
   `docs/calibration-analysis.md`, `docs/threats-to-validity.md`,
   `docs/paper-outline.md`, `docs/scalerag-final-tables.json`.
+- **Phase-10 locked artifacts:** `docs/final-heldout-test-report.md`,
+  `docs/scalerag-heldout-test-tables.json`, `docs/final-abstract.md`,
+  `reports/scalerag-heldout-{val,test}-30490.json`.
+- **HF demo (research software, NOT a scientific contribution):**
+  `spaces/scalerag-demo/` (Gradio; references official `amazon/chronos-2`, no weight
+  upload; synthetic example data only; no M5/Favorita/Kaggle data or creds).
 - **Deferred (do NOT start unless explicitly asked as a *secondary* efficiency study):**
   adapter/LoRA (Phase 9 Part D). Never use LoRA to rescue the retrieval headline.
 
@@ -82,8 +98,9 @@ HF cache is project-local `.hf_cache/` (gitignored). Commands: `make check`
 ## NON-NEGOTIABLE RESEARCH RULES
 
 1. **Chronological splits only** (never random/shuffled).
-2. **Never use the hidden M5 labels** (`d_1942+`); **do not evaluate `d_1914–1941`**
-   until the method is frozen and a final run is explicitly authorized.
+2. **Never use the hidden M5 labels** (`d_1942+`). The `d_1914–1941` test split was
+   frozen-then-consumed once in Phase 10 (`M5_TEST_CONSUMED.lock`); **do not evaluate
+   it again** or tune anything on its results (test-driven tuning is blocked).
 3. **Retrieval horizon guard:** `candidate_end + H < target_forecast_origin`.
 4. Distinguish known-future covariates from unavailable future info.
 5. **Fit on training/historical origins only** (scalers, indices, utility labels,

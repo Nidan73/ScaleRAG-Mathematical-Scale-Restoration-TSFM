@@ -52,9 +52,37 @@ mitigated each. Conclusions are stated within these bounds.
 - The gated fusion under-covers (80% coverage 0.69 vs Chronos 0.79). We report this
   and offer point-preserving post-hoc widening; we do not hide the regression.
 
+## Phase-10 held-out test (locked run) — updated threats
+
+- **Official WRMSSE is now computed on the full panel — and it reverses the
+  headline.** The earlier "subset WRMSSE is not comparable" caveat is resolved: on
+  the full 30,490-series M5 test panel, LightGBM (0.866) and Seasonal-Naive (0.870)
+  beat ScaleRAG (1.223) on the official dollar-weighted WRMSSE. ScaleRAG's advantage
+  is **RMSSE-specific**; on WRMSSE, MAE, WAPE, MASE, pinball, and coverage it does
+  not lead. We do not select the metric that flatters the method — all are reported.
+- **Single test origin.** The confirmation is one origin (`d_1913 → d_1914–1941`).
+  It is consistent with the full-panel validation origin (item 8; test is slightly
+  stronger vs Chronos-2, so no validation over-fitting), but generalisation across
+  many test origins is not established — by design the test split is used once.
+- **GPU-retriever equivalence.** The full-panel run uses a GPU batched-exact k-NN
+  instead of the frozen numpy retriever, for tractability. It is verified
+  **bit-identical** on the 1,000-series validation subset (max point-forecast diff
+  `0.0`, RMSSE matches the frozen table to <1e-6; `scripts/verify_gpu_retrieval.py`),
+  so it is an arithmetic acceleration, not a method change. Residual risk: float
+  tie-breaks on series never seen in the subset check — bounded by the exact CPU
+  float32 finalize step that reproduces the frozen tie-break rule.
+- **Gate under-coverage persists on test** (80% coverage 0.698 vs Chronos 0.786). No
+  post-hoc calibration was applied because none was fitted/frozen during the study
+  (rule 5); raw coverage is reported rather than a tuned widener.
+- **Test consumed.** `d_1914–d_1941` is now spent (`M5_TEST_CONSUMED.lock`); the
+  harness refuses further test runs. Any re-run requires deleting the lock with an
+  explicit, logged authorization — preventing silent test-driven tuning.
+
 ## Bottom line
 The controlled-study conclusions — (1) scale-aware retrieval augments a frozen TSFM
-by ~5% but does not beat the strongest simple baseline by the pre-registered
-margin; (2) typed-relation graph routing adds nothing across two datasets — hold
-**within intermittent retail, under RMSSE, with our leakage-safe protocol**. They
-are not asserted beyond those bounds.
+by ~5% **on RMSSE** but does not beat the strongest simple baseline by the
+pre-registered margin, does not win the official WRMSSE, and does not lead on
+absolute/probabilistic metrics; (2) typed-relation graph routing adds nothing across
+two datasets — hold **within intermittent retail, with our leakage-safe protocol**,
+and are **confirmed on the untouched M5 test split (0/3 criteria met)**. They are not
+asserted beyond those bounds.

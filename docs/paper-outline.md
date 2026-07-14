@@ -16,9 +16,10 @@ confidence intervals and controls across two datasets.
 ## Contributions (claims we can defend)
 1. **Scale-aware retrieval augmentation of a frozen TSFM.** Mean-scaled matching +
    **exact scale restoration** turns naive retrieval (which *hurts*, +RMSSE) into a
-   useful augmentation, improving target-only Chronos-2 by **+4.86%** RMSSE on M5
-   (CI [4.30, 5.39]). Scale restoration is the decisive component (ablation: 0.74 →
-   2.79 without it).
+   useful augmentation, improving target-only Chronos-2 by **+4.86%** RMSSE on the M5
+   1k subset (CI [4.30, 5.39]) and **+5.49%** on the **locked full-panel held-out
+   test** `d_1914–d_1941` (CI [+5.40, +5.59]; validation +5.08%). Scale restoration is
+   the decisive component (ablation: 0.74 → 2.79 without it).
 2. **Learned uncertainty-aware gated fusion.** A small gate over retrieval
    confidence/disagreement, intermittency, volume, and Chronos uncertainty routes
    each series between the TSFM and retrieval; it beats fixed-weight fusion
@@ -39,11 +40,16 @@ confidence intervals and controls across two datasets.
    the field's benchmarking.
 
 ## Claims we explicitly do NOT make
-- No SOTA / leaderboard claim (subset RMSSE ≠ official M5 WRMSSE; test split unused).
+- **No SOTA / leaderboard claim.** On the **full-panel official M5 WRMSSE** (now
+  computed on the held-out test), ScaleRAG (1.223) does **not** win — LightGBM (0.866)
+  and Seasonal-Naive (0.870) are better. The +5.49% headline is **RMSSE-specific**.
+- **No general point-accuracy win.** Frozen Chronos-2 is best on MASE/WAPE/MAE and is
+  the best-calibrated forecaster; ScaleRAG's fusion under-covers and trades absolute/
+  probabilistic accuracy for squared-error accuracy (all reported).
 - No superiority over RAFT / TS-RAG originals (only *inspired* reimplementations
   under our protocol).
-- No probabilistic-forecasting win: Chronos-2 is better-calibrated; fusion trades
-  coverage for point accuracy (reported).
+- **0 / 3 pre-registered criteria met** on the untouched test split — the negative is
+  confirmed, not softened.
 
 ## Proposed section structure
 1. Introduction — retrieval-augmented forecasting; the intermittent-retail challenge.
@@ -61,7 +67,12 @@ confidence intervals and controls across two datasets.
 
 ## Reproducibility statement
 Full pipeline, seeds, `uv.lock`, leakage tests, and machine-readable result tables
-released; M5 test split reserved for a single final confirmation run after freezing.
+released. The M5 test split `d_1914–d_1941` was reserved untouched during
+development and **consumed exactly once** after freezing (Phase 10, commit
+`d42d20e`, `M5_TEST_CONSUMED.lock`); the harness blocks further test runs. Locked
+results: `docs/final-heldout-test-report.md`, `docs/scalerag-heldout-test-tables.json`,
+`docs/final-abstract.md`. The full-panel run uses a GPU exact-k-NN retriever verified
+bit-identical to the frozen numpy retriever (`scripts/verify_gpu_retrieval.py`).
 
 ## Next step (only if reviewers want it; secondary)
 A small **adapter/LoRA** efficiency experiment on the frozen backbone — reported
