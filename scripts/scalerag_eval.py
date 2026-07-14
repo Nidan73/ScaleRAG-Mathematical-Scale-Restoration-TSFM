@@ -224,7 +224,9 @@ def main() -> int:
         if sm.sum() < 20:
             continue
         si = np.flatnonzero(sm)
-        vs_best = scalerag.paired_bootstrap_rel_improvement(rmsse_i[strongest][si], rmsse_i[prop][si])
+        vs_best = scalerag.paired_bootstrap_rel_improvement(
+            rmsse_i[strongest][si], rmsse_i[prop][si]
+        )
         vs_chr = scalerag.paired_bootstrap_rel_improvement(rmsse_i[base][si], rmsse_i[prop][si])
         slice_boot[sn] = {"n": int(sm.sum()), "vs_strongest": vs_best, "vs_chronos": vs_chr}
         if vs_best["rel_improvement"] >= 0.07 and vs_best["ci95_low"] > 0:
@@ -270,8 +272,10 @@ def main() -> int:
     print("\nslices (ScaleRAG rel-impr vs strongest / vs chronos):")
     for sn, d in slice_boot.items():
         b, c = d["vs_strongest"], d["vs_chronos"]
-        print(f"  {sn:26s} n={d['n']:4d}  vs_best={b['rel_improvement']:+.2%} "
-              f"[{b['ci95_low']:+.2%},{b['ci95_high']:+.2%}]  vs_chr={c['rel_improvement']:+.2%}")
+        print(
+            f"  {sn:26s} n={d['n']:4d}  vs_best={b['rel_improvement']:+.2%} "
+            f"[{b['ci95_low']:+.2%},{b['ci95_high']:+.2%}]  vs_chr={c['rel_improvement']:+.2%}"
+        )
     print(f"\nCRITERION 1 (>=3% over strongest, CI excl 0): {crit1}")
     print(f"CRITERION 3 (>=7% on a slice over strongest, CI excl 0): {crit3}")
     return 0

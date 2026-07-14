@@ -1,113 +1,100 @@
-# CLAUDE.md — GraphRoute-TS
+# CLAUDE.md — ScaleRAG-TS (formerly GraphRoute-TS)
 
-Project memory for Claude Code. Keep this concise. Detailed procedures live in
-`.claude/skills/`; file-scoped rules live in `.claude/rules/`.
+Project memory for Claude Code. Keep concise. Procedures live in `.claude/skills/`;
+file-scoped rules in `.claude/rules/`.
 
-## Objective
+## Objective (PIVOTED — read this)
 
-**GraphRoute-TS: Relation-Aware Context Retrieval for Parameter-Efficient
-Time-Series Foundation Models.** Investigate whether relation-aware retrieval of
-supporting context (via a learned graph router) improves parameter-efficient
-adaptation of time-series foundation models (TSFMs) on forecasting benchmarks
-(primarily M5), versus strong classical and TSFM baselines.
+Originally **GraphRoute-TS** (relation-aware graph routing for TSFM retrieval). That
+central hypothesis was **rigorously rejected** across Phases 6–8 (M5 + Favorita,
+non-learned and learned routers, controls, CIs — typed relations add no retrieval
+value beyond temporal similarity).
 
-## Approved research scope (current phase)
+The project is now **ScaleRAG-TS: Scale-Aware Retrieval Augmentation for Time-Series
+Foundation Models** — augment a **frozen** Chronos-2 backbone with scale-aware
+temporal retrieval + a learned uncertainty-aware **gated fusion**. The cross-dataset
+graph-routing negative is a secondary empirical contribution.
 
-Environment, reproducibility, and evaluation scaffolding **only**. The following
-are explicitly **out of scope until the baseline pipeline is verified**:
-GraphSAGE, LoRA/PEFT adapters, the ARM component, and the hybrid router. Do not
-download full datasets, train models, or launch long experiments yet.
+## Current status (Phases 1–9 complete)
 
-## Repository architecture
+- Controlled study **finished**; method + hyperparameters **frozen**.
+- **Frozen config:** `ScaleRAG_gated` = mean/L2/category-filter/k=20 + scale
+  restoration + learned LightGBM gate over {nn-distance, retrieval-disagreement,
+  intermittency, log-volume, Chronos-uncertainty, scale-spread}.
+- **Frozen verdict (do not re-litigate):** ScaleRAG beats target-only Chronos-2
+  **+4.86%** RMSSE on M5 (CI [4.30,5.39]) but only **+0.83%** on denser Favorita
+  (regime-dependent); it **ties** the strongest simple baseline (LightGBM/recent-mean)
+  and **fails all 3 pre-registered success criteria** → framed as a controlled study.
+- **M5 test split `d_1914–d_1941` is UNTOUCHED** — reserved for a single final
+  confirmation run, only after (now-complete) freezing, and only when authorized.
+- **Paper artifacts:** `docs/scalerag-ts-method.md`, `docs/scalerag-ts-validation-report.md`,
+  `docs/final-experiment-report.md`, `docs/ablation-report.md`,
+  `docs/calibration-analysis.md`, `docs/threats-to-validity.md`,
+  `docs/paper-outline.md`, `docs/scalerag-final-tables.json`.
+- **Deferred (do NOT start unless explicitly asked as a *secondary* efficiency study):**
+  adapter/LoRA (Phase 9 Part D). Never use LoRA to rescue the retrieval headline.
+
+## Datasets (both ingested, leakage-safe, gitignored)
+
+- **M5** → `data/processed/{entities,dynamic}.parquet` (30,490 series, d_1..d_1941).
+- **Favorita** → `data/processed/favorita/{entities,dynamic}.parquet` (5,000-series
+  streamed subset, 1,000 days, richer metadata: family/class/perishable/type/
+  cluster/city/state). Raw in `data/raw/favorita/` (train.csv ~5 GB, gitignored).
+- Kaggle downloads gated behind rules-acceptance; the browser "Download All" +
+  drop-into-`data/raw/` path is the reliable workaround (token lists but 403s on
+  Kaggle credentials are read from the environment (see `.env.example`) and are never committed or echoed.
+
+## Architecture (`src/graphroute_ts/`)
 
 ```
-src/graphroute_ts/   Python package (config, reproducibility, cli; models later)
-configs/             YAML experiment configs (validated by config.py)
-data/{raw,interim,processed}/   Datasets — NEVER committed
-tests/{unit,integration,leakage}/   Leakage tests are first-class
-scripts/             CLI utilities; scripts/hooks/ holds Claude Code hooks
-docs/                Audit, setup, reproducibility, MCP, status docs
-artifacts/ logs/ reports/   Run outputs — NEVER committed
-.claude/             rules/, skills/, agents/, settings.json
+config, reproducibility, cli, leakage         # foundations
+data/{m5_schema,synthetic,m5_ingest}, splits  # M5 ingest + chronological splits
+metrics, hierarchy                            # MAE/WAPE/MASE/RMSSE/WRMSSE/pinball
+features, baselines/{seasonal_naive,lightgbm} # classical baselines (Phase 2-3)
+retrieval, retrieval_faiss, retrieval_forecast# temporal retrieval (Phase 4-5, FAISS, scale restoration)
+tsfm/chronos2                                 # frozen Chronos-2 wrapper (amazon/chronos-2, bf16)
+graph, graphsage, graph_retrieval             # REJECTED graph routing (kept for the negative result)
+router                                        # learned candidate-ranking router (Phase 7)
+favorita_graph                                # Favorita richer relations
+scalerag                                      # gated fusion + paired-bootstrap CI (Phase 9)
 ```
+Key scripts: `scalerag_matrix.py` (M5 full matrix), `scalerag_favorita.py`,
+`scalerag_eval.py`, `ingest_favorita.py`, `baseline_run.py`, plus the leakage/data
+audit scripts backing the skills.
 
-## Environment commands
+## Environment
 
-Package/env manager is **uv**. Python is pinned to 3.11 (`.python-version`).
-PyTorch comes from the `cu130` index (Blackwell / RTX 5070 Ti, sm_120).
+uv-managed, Python 3.11; PyTorch `cu130` (RTX 5070 Ti, sm_120). GPU ~16 GB, but
+Chronos-2 uses <2 GB. `uv sync --extra ml --extra retrieval --extra tsfm`.
+HF cache is project-local `.hf_cache/` (gitignored). Commands: `make check`
+(fmt+lint+type+unit+leakage), `make verify`, `uv run <cmd>`. Activate (fish):
+`source .venv/bin/activate.fish`.
 
-| Task | Command |
-|------|---------|
-| Install / sync env | `uv sync --extra ml --extra retrieval --extra tsfm` |
-| Verify environment | `make verify` (or `/environment-check`) |
-| Format | `make fmt` |
-| Lint | `make lint` |
-| Type check | `make type` |
-| Unit tests | `make test` |
-| Leakage tests | `make leakage` |
-| All fast checks | `make check` |
-| Run any tool | `uv run <cmd>` |
+## Conventions & discipline
 
-Activate in Fish: `source .venv/bin/activate.fish`.
-
-## Coding conventions
-
-- Python 3.11, `from __future__ import annotations`, full type hints on public APIs.
-- Ruff for format + lint; mypy for types. No committed code that fails `make check`.
-- Prefer Polars / DuckDB / PyArrow for data; pandas only when an API requires it.
-- Fail loudly. No bare `except:`; no silently swallowed exceptions; no silent defaults.
-- Small, composable functions; keep modules dependency-light (config/repro import without torch).
-
-## Testing expectations
-
-- Every data/eval component ships unit tests. Temporal-leakage tests are mandatory
-  and live in `tests/leakage/`.
-- `make check` (format, lint, types, unit + leakage) must pass before any commit.
-- No network or dataset downloads inside the fast test suite.
-
-## Data-handling rules
-
-- Datasets are never committed (enforced by `.gitignore`). Only code + configs are.
-- Raw → interim → processed is one-directional; processed never edited in place.
-- Secrets (`.env`, Kaggle/HF tokens, keys) are never read, printed, or committed.
-
-## Reproducibility rules
-
-- Record for every run: seeds, package versions, config file, git commit, runtime,
-  hardware. Use `graphroute_ts.reproducibility.RunContext` + `set_seed`.
-- `uv.lock` is committed and authoritative. Do not hand-edit it.
-
-## Experiment-recording requirements
-
-Every experiment writes a config + a run record (seed, versions, git commit,
-hardware, metrics with dispersion). No result is reported from a single
-unexplained run (see rule 6 below).
-
-## Prohibited shortcuts
-
-Never bypass leakage checks, never edit evaluation code to improve a number,
-never swap a failing model for a different one silently, never fabricate
-significance, never commit data/weights/secrets.
-
----
+- Python 3.11, `from __future__ import annotations`, type hints, ruff + mypy clean.
+- Fail loudly (no bare `except`, no silent defaults). Polars/DuckDB over pandas.
+- Every experiment: seeds, versions, config, git commit, runtime, hardware; metrics
+  with **dispersion / paired-bootstrap CIs**. Reports → `reports/` (gitignored,
+  regenerable); curated results → `docs/`.
+- Datasets/weights/secrets NEVER committed. `.env*`, `*.7z`, `*.zip` gitignored.
 
 ## NON-NEGOTIABLE RESEARCH RULES
 
-1. **Chronological splits only.** Never random or shuffled splits for forecasting.
-2. **Never use the hidden M5 competition evaluation labels.**
-3. **Retrieval horizon guard.** For a retrieved context ending at `t_r` with
-   horizon `H`: require `t_r + H < target_forecast_origin`.
-4. **Distinguish known-future covariates from unavailable future information.**
-   Only genuinely known-ahead covariates may enter the forecast for time > origin.
-5. **Fit on training data only.** Scalers, encoders, retrieval indices, and feature
-   transforms are fit on train, then applied to val/test.
-6. **Never report metrics from a single unexplained run.** Report seeds + dispersion.
-7. **Never silently replace a failed model with another implementation.** Report the failure.
-8. **Never claim statistical significance without a valid test or confidence interval.**
+1. **Chronological splits only** (never random/shuffled).
+2. **Never use the hidden M5 labels** (`d_1942+`); **do not evaluate `d_1914–1941`**
+   until the method is frozen and a final run is explicitly authorized.
+3. **Retrieval horizon guard:** `candidate_end + H < target_forecast_origin`.
+4. Distinguish known-future covariates from unavailable future info.
+5. **Fit on training/historical origins only** (scalers, indices, utility labels,
+   gate training).
+6. **No single-run headline numbers** — report seeds + dispersion / bootstrap CIs.
+7. **Never silently swap a failed model** for another; report the failure.
+8. **No significance claim without a valid test / CI.**
 9. **Never alter evaluation code merely to improve results.**
-10. **Record seeds, package versions, config files, git commit, runtime, and hardware
-    for every experiment.**
-11. **Do not begin GraphSAGE, LoRA, ARM, or hybrid-router work until the baseline
-    pipeline is verified.**
-12. **Do not launch long training jobs** without first showing the command,
-    configuration, expected outputs, and approximate resource demand.
+10. Record seeds/versions/config/commit/runtime/hardware for every experiment.
+11. **Graph routing is rejected** — do not build further graph/GraphSAGE/KG/relation
+    components. Do not implement LoRA except as an explicitly-secondary efficiency
+    experiment (never to rescue the headline).
+12. **Do not change the pre-registered success criteria, hide negative results, or
+    fabricate improvements.** Preserve negatives.

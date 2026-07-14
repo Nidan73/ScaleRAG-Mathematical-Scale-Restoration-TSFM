@@ -1,13 +1,16 @@
-# GraphRoute-TS
+# ScaleRAG-TS  (formerly GraphRoute-TS)
 
-**Relation-Aware Context Retrieval for Parameter-Efficient Time-Series Foundation Models.**
+**Scale-Aware Retrieval Augmentation for Time-Series Foundation Models.**
 
-Research codebase investigating whether relation-aware retrieval of supporting
-context (via a learned graph router) improves parameter-efficient adaptation of
-time-series foundation models (TSFMs) on forecasting benchmarks (primarily M5).
+Research codebase studying whether scale-aware temporal retrieval + a learned
+gated fusion improves a **frozen** Chronos-2 backbone on intermittent-retail
+forecasting (M5 + Favorita). The original relation-aware **graph-routing**
+hypothesis was rigorously **rejected** cross-dataset (Phases 6–8) and is kept as a
+controlled negative result.
 
-> **Status:** Phase 1 — environment & scaffolding. No datasets, models, or
-> training yet. See `docs/project-status.md` and the research rules in `CLAUDE.md`.
+> **Status:** Phases 1–9 complete; controlled study finished, method frozen. The
+> M5 test split `d_1914–d_1941` is untouched. See `docs/project-status.md`,
+> `docs/final-experiment-report.md`, and the research rules in `CLAUDE.md`.
 
 ## Requirements
 
