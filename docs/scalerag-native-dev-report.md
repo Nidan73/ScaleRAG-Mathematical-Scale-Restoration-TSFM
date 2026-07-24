@@ -120,7 +120,7 @@ RTX 5070 Ti (sm_120), batch 256. Sources: `reports/phase11a/compute_backbone.jso
 | Component | Trainable params | Latency / window | Peak VRAM | Index build | DB storage | Peak RAM |
 |---|---|---|---|---|---|---|
 | Chronos-Bolt backbone (frozen) | **0** (205.3 M frozen) | 0.431 ms (GPU) | 1 562 MB | — | — | — |
-| TS-RAG ARM (official) | **4.78 M** (16 tensors) | ~0.44 ms (+3.8% wall) | ~1.6 GB | — | 1 529 MB (`.pkl` KB) | — |
+| TS-RAG ARM (official) | **4.78 M** (16 tensors) | ~0.45 ms (+4.3% wall) | ~1.6 GB | — | 1 529 MB (`.pkl` KB) | — |
 | ScaleRAG retrieval (frozen) | **0** (non-neural) | 0.607 ms (CPU, exact k-NN) | 0 (CPU) | 1.38 s (7 var) | 1 096 MB (float64) | 1 245 MB |
 
 Full-test wall clock: backbone 34.2 s; TS-RAG 35.5 s; ScaleRAG ≈ 34.2 s (backbone) + ~49 s

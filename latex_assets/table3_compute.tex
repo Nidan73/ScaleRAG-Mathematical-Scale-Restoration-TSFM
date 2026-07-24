@@ -1,0 +1,37 @@
+% Table 3: Measured compute / storage / parameter accounting, one machine (RTX 5070 Ti,
+% sm_120), batch 256, warm-up excluded from all timings.
+% Source: reports/phase11a/compute_backbone.json (backbone params/VRAM/latency),
+%         reports/phase11a/compute_scalerag.json (ScaleRAG retrieval index/latency/RAM),
+%         reports/phase11a/repro_{chronos_bolt_target,tsrag_official}_ettm2.json
+%         (full-test wall-clock eval_seconds, used to derive the TS-RAG per-window latency
+%         by scaling the measured backbone latency by the wall-clock ratio -- the ARM
+%         adds ~4.3% wall time over the frozen backbone).
+% ScaleRAG's "storage" is its train-only in-RAM float64 index (contexts + continuations);
+% the official TS-RAG knowledge-base pickle (1,528.6 MB, full-series, not train-only) is
+% listed alongside it as an unlike-for-unlike storage reference, not a fair comparison
+% (ScaleRAG deliberately restricts to a stricter, train-only candidate pool).
+% Requires \usepackage{graphicx} for \resizebox (wide 6-column table).
+\begin{table}[t]
+  \centering
+  \caption{Measured compute, storage, and trainable-parameter accounting (ETTm2, one machine,
+    batch 256, warm-up excluded). ScaleRAG's retrieval index is CPU-resident (0 VRAM);
+    latency is reported separately for the frozen backbone forward pass and the retrieval
+    step, since ScaleRAG's fused forecast requires both.}
+  \label{tab:compute}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    Component & Train.\ params & Latency / window & Peak VRAM & Peak RAM & Storage \\
+    \midrule
+    Chronos-Bolt backbone (frozen) & 0 (205.3M) & 0.431\,ms & 1{,}562\,MB & --- & --- \\
+    TS-RAG ARM (official)          & 4.78M      & 0.450\,ms ($+4.3\%$) & $\sim$1.6\,GB & --- & 1{,}528.6\,MB$^{\ast}$ \\
+    ScaleRAG retrieval (non-neural) & 0          & 0.607\,ms (CPU) & 0 (CPU) & 1{,}245.0\,MB & 1{,}096.2\,MB \\
+    \midrule
+    ScaleRAG total (backbone + retrieval) & 0 & 1.038\,ms & 1{,}562\,MB & 1{,}245.0\,MB & --- \\
+    \bottomrule
+  \end{tabular}%
+  }
+  \\[4pt]
+  {\footnotesize $^{\ast}$Full-series official knowledge base (not train-only); listed for
+   storage reference, not a like-for-like index-size comparison.}
+\end{table}

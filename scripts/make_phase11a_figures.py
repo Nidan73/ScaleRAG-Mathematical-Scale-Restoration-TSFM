@@ -9,7 +9,7 @@ Every value is sourced from a real artifact — no fabricated numbers:
 * M5 ablation (restoration, top-k)         -> ``docs/ablation-report.md`` (cited constants)
 * M5 regime slices + cross-dataset utility -> ``reports/scalerag-heldout-val-30490.json``,
                                               ``reports/scalerag-favorita.json``
-* fig1 / fig4 exemplar windows             -> reconstructed with the frozen retriever
+* fig1 / fig3 exemplar windows             -> reconstructed with the frozen retriever
                                               (:mod:`graphroute_ts.scalerag_native`)
 
 Outputs vector PDFs to ``docs/figures/`` in IEEE/AII-style serif styling.
@@ -176,13 +176,13 @@ def fig1_motivation() -> None:
     plt.close(fig)
 
 
-# ---- fig3: ablation -----------------------------------------------------------------
+# ---- fig2: ablation -----------------------------------------------------------------
 # M5 ablation constants — source: docs/ablation-report.md (1,000-series val)
 M5_NO_RESTORE = 2.7884
 M5_RESTORE = 0.7425
 
 
-def fig3_ablation() -> None:
+def fig2_ablation() -> None:
     d = load_ettm2_test()
     per = d["dev"]["test_per_series"]["A_restoration"]["per_series"]
     labels = [r["var"] for r in per]
@@ -224,12 +224,12 @@ def fig3_ablation() -> None:
     ax_r.set_ylim(0, M5_NO_RESTORE * 1.15)
 
     fig.suptitle("Scale restoration is decisive in both regimes", y=1.03, fontsize=12.5)
-    fig.savefig(FIG / "fig3_ablation.pdf")
+    fig.savefig(FIG / "fig2_ablation.pdf")
     plt.close(fig)
 
 
-# ---- fig4: qualitative --------------------------------------------------------------
-def fig4_qualitative() -> None:
+# ---- fig3: qualitative --------------------------------------------------------------
+def fig3_qualitative() -> None:
     d = load_ettm2_test()
     z, names = E.load_normalized()
     scale, var, k = "mean", 6, 20  # OT: mid-scale, well-behaved channel
@@ -286,11 +286,11 @@ def fig4_qualitative() -> None:
     ax_b.set_ylabel("normalized value")
     ax_b.legend(frameon=False, ncol=2, loc="upper left")
 
-    fig.savefig(FIG / "fig4_qualitative.pdf")
+    fig.savefig(FIG / "fig3_qualitative.pdf")
     plt.close(fig)
 
 
-# ---- fig5: regimes ------------------------------------------------------------------
+# ---- fig4: regimes ------------------------------------------------------------------
 def _zero_fraction(parquet: Path) -> pl.DataFrame:
     return (
         pl.scan_parquet(parquet)
@@ -301,7 +301,7 @@ def _zero_fraction(parquet: Path) -> pl.DataFrame:
     )
 
 
-def fig5_regimes() -> None:
+def fig4_regimes() -> None:
     m5 = _zero_fraction(ROOT / "data/processed/dynamic.parquet")
     fav = _zero_fraction(ROOT / "data/processed/favorita/dynamic.parquet")
     m5_zf = m5["zf"]
@@ -351,12 +351,12 @@ def fig5_regimes() -> None:
         color="#555555",
     )
     ax.legend(frameon=False, loc="upper left")
-    fig.savefig(FIG / "fig5_regimes.pdf")
+    fig.savefig(FIG / "fig4_regimes.pdf")
     plt.close(fig)
 
 
-# ---- fig6: pareto -------------------------------------------------------------------
-def fig6_pareto() -> None:
+# ---- fig5: pareto -------------------------------------------------------------------
+def fig5_pareto() -> None:
     cb = json.loads((P11 / "compute_backbone.json").read_text())
     sc = json.loads((P11 / "compute_scalerag.json").read_text())
     grid = json.loads((P11 / "scalerag_native_ettm2_test.json").read_text())
@@ -418,16 +418,16 @@ def fig6_pareto() -> None:
     ax.set_ylabel("test MSE  (lower better)")
     ax.set_xlim(back_ms - 0.06, back_ms + retr_ms + 0.12)
     ax.set_title("ScaleRAG is Pareto-dominated on ETTm2 (slower and less accurate)", loc="left")
-    fig.savefig(FIG / "fig6_pareto.pdf")
+    fig.savefig(FIG / "fig5_pareto.pdf")
     plt.close(fig)
 
 
-# ---- fig7: sensitivity --------------------------------------------------------------
+# ---- fig6: sensitivity --------------------------------------------------------------
 # M5 restored-retrieval RMSSE top-k sweep — source: docs/ablation-report.md
 M5_TOPK = {5: 0.7708, 10: 0.7511, 20: 0.7425}
 
 
-def fig7_sensitivity() -> None:
+def fig6_sensitivity() -> None:
     grid = json.loads((P11 / "scalerag_native_ettm2_test.json").read_text())
     ks = [5, 10, 20]
     restored = {
@@ -479,7 +479,7 @@ def fig7_sensitivity() -> None:
     lines = ax_l.get_lines() + ax_r.get_lines()
     labels = [str(ln.get_label()) for ln in lines]
     ax_l.legend(lines, labels, frameon=False, loc="center right", fontsize=9)
-    fig.savefig(FIG / "fig7_sensitivity.pdf")
+    fig.savefig(FIG / "fig6_sensitivity.pdf")
     plt.close(fig)
 
 
@@ -487,11 +487,11 @@ def main() -> None:
     _style()
     FIG.mkdir(parents=True, exist_ok=True)
     fig1_motivation()
-    fig3_ablation()
-    fig4_qualitative()
-    fig5_regimes()
-    fig6_pareto()
-    fig7_sensitivity()
+    fig2_ablation()
+    fig3_qualitative()
+    fig4_regimes()
+    fig5_pareto()
+    fig6_sensitivity()
     print(f"wrote 6 figures to {FIG}")
     for f in sorted(FIG.glob("fig*.pdf")):
         print("  ", f.name, f"{f.stat().st_size / 1024:.0f} KB")
