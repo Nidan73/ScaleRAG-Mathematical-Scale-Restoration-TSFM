@@ -47,6 +47,19 @@ graph-routing negative is a secondary empirical contribution.
 - **HF demo (research software, NOT a scientific contribution):**
   `spaces/scalerag-demo/` (Gradio; references official `amazon/chronos-2`, no weight
   upload; synthetic example data only; no M5/Favorita/Kaggle data or creds).
+- **Phase 11A (native TS-RAG feasibility, ETTm2 dev only) — DECISION GATE NOT PASSED
+  (4/5):** official TS-RAG reproduced ≤0.10% (`docs/tsrag-official-audit.md`,
+  `docs/tsrag-ettm2-reproduction.md`); native adapter
+  `src/graphroute_ts/scalerag_native.py` (frozen ScaleRAG math, train-only exact k-NN,
+  FAISS≡NumPy). Restored retrieval beats raw **+85.4%** (CI excl 0, mechanism validated),
+  **but** restored fixed fusion (frozen mean/k20/w0.25) is **−0.85%** MSE vs frozen
+  Chronos-Bolt (CI [−1.39,−0.28]) and **−2.30%** vs official TS-RAG on ETTm2 test →
+  **condition 3 fails**. Reports: `docs/scalerag-native-dev-report.md`,
+  `docs/scalerag-native-{dev-results,frozen-config}.json`, `reports/phase11a/`.
+  **Phase 11B is BLOCKED** (`docs/phase11b-preregistration.md`, NOT executed) — the four
+  test datasets (ETTh1/ETTm1/Weather/Electricity) stay **unopened** (rules 2, 9, 12).
+  Same regime story as M5/Favorita: mechanism helps retrieval quality, not end-to-end
+  forecasting on dense continuous channels.
 - **Deferred (do NOT start unless explicitly asked as a *secondary* efficiency study):**
   adapter/LoRA (Phase 9 Part D). Never use LoRA to rescue the retrieval headline.
 

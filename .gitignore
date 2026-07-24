@@ -115,3 +115,6 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+# Phase 11A: isolated TS-RAG clone, assets, venv (never commit)
+external/
