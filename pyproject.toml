@@ -50,6 +50,11 @@ retrieval = [
     "faiss-cpu>=1.9",
 ]
 
+# Publication-quality figure generation (scripts/make_phase11a_figures.py).
+viz = [
+    "matplotlib>=3.10",
+]
+
 # ---- Deferred / heavy optional groups: DEFINED but NOT installed yet. ----
 # Enable explicitly once the baseline pipeline is verified.
 graph = [
