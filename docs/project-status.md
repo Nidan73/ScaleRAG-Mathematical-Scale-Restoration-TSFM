@@ -88,6 +88,23 @@ ETTm2** as development data.
     written directly by `scripts/make_phase11a_figures.py` (a 7th, `architecture.pdf`, is a
     manually-drawn pipeline diagram, still not created).
 
+  **Figure-design rules** (redrawn 2026-07-26; the script enforces them):
+  - **One y-axis per panel — never a twin axis.** Two measures of different scale become
+    small multiples. This is why `fig6` is three panels: a dual-scale plot implies a
+    correlation the data does not contain.
+  - **Direct end-labels** on lines rather than legend boxes parked over the data; a legend
+    only where marks cannot be labelled in place (`fig3b`, where four curves converge).
+  - **No trend line through incomparable populations.** `fig4` deliberately omits the
+    connecting curve the earlier version drew through five different datasets on two
+    different metrics — no such fit was ever estimated.
+  - Solid hairline gridlines on the value axis only; top/right spines dropped.
+  - Palette validated colour-blind-safe all-pairs (blue `#2a78d6` = ours/restored, orange
+    `#eb6834` = raw/target-only, violet `#4a3aa7` = TS-RAG; worst deutan ΔE 13.0, worst
+    normal-vision ΔE 16.3, all ≥3:1 on white).
+  - **Exemplar windows are representative, not flattering.** `fig3` picks the window whose
+    fused error is nearest the median; `fig1`'s selection criteria are unchanged from the
+    original. Every value still traces to a locked artifact.
+
   Supersedes the former `manuscript/` (5 section files) and `latex_assets/` (3 table files),
   both removed in the same commit — their content is preserved verbatim inside `main.tex`,
   including the `table` → `table*` fix so the tables span the two-column spread. No numbers
