@@ -1,0 +1,130 @@
+<mxGraphModel dx="1820" dy="980" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1820" pageHeight="980" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="Q" value="Target series&#10;context window  x ∈ ℝ^L&#10;at the forecast origin" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f7f7f5;strokeColor=#898781;strokeWidth=1.5;fontSize=12;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="40" y="330" width="175" height="84" as="geometry" />
+    </mxCell>
+    <mxCell id="P" value="Candidate pool&#10;all train-origin windows&#10;(context, continuation)" style="shape=cylinder3;whiteSpace=wrap;html=0;boundedLbl=1;backgroundOutline=1;size=13;fillColor=#f7f7f5;strokeColor=#898781;strokeWidth=1.5;fontSize=12;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="40" y="520" width="175" height="100" as="geometry" />
+    </mxCell>
+    <mxCell id="N1" value="1.  SCALE NORMALIZATION&#10;(query)&#10;&#10;μ_q , σ_q  from the context&#10;q* = ( x − μ_q ) / ( σ_q + ε )" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=1.5;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="255" y="318" width="220" height="104" as="geometry" />
+    </mxCell>
+    <mxCell id="N2" value="1.  SCALE NORMALIZATION&#10;(candidates)&#10;&#10;identical closed form;&#10;each candidate's stats stored" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=1.5;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="255" y="528" width="220" height="104" as="geometry" />
+    </mxCell>
+    <mxCell id="IDX" value="2.  EXACT k-NN SEARCH&#10;in the scale-invariant space&#10;&#10;FAISS IndexFlatL2 (CPU);&#10;batched-GPU exact search&#10;for the 30,490-series M5 panel&#10;&#10;L2 metric  ·  k = 20&#10;category filter" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=1.5;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="530" y="348" width="230" height="184" as="geometry" />
+    </mxCell>
+    <mxCell id="TOP" value="Top-k normalized&#10;continuations&#10;y* ∈ ℝ^H" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f4f8fe;strokeColor=#2a78d6;strokeWidth=1.2;dashed=1;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="805" y="400" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="RES" value="3.  EXPLICIT SCALE RESTORATION&#10;&#10;y_restored = y* · σ_q + μ_q&#10;&#10;mean over the k candidates" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=2;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1000" y="383" width="235" height="108" as="geometry" />
+    </mxCell>
+    <mxCell id="B1" value="❄   FROZEN TSFM BACKBONE&#10;Chronos-2 (M5)  ·  Chronos-Bolt (ETTm2)&#10;&#10;zero-shot forecast   y_TSFM ∈ ℝ^H&#10;0 trainable parameters" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fdece4;strokeColor=#eb6834;strokeWidth=2;fontSize=11.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1240" y="118" width="300" height="122" as="geometry" />
+    </mxCell>
+    <mxCell id="FUSE" value="4.  FUSION&#10;&#10;y = ( 1 − w ) · y_TSFM&#10;+  w · y_restored" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=2;fontSize=12.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1290" y="378" width="250" height="112" as="geometry" />
+    </mxCell>
+    <mxCell id="GATE" value="LEARNED GATE     w = g( φ )&#10;sparse regime  (M5)&#10;&#10;LightGBM, fit on training origins only&#10;&#10;φ  =  nn-distance  ·  retrieval disagreement&#10;intermittency  ·  log-volume&#10;backbone uncertainty  ·  scale spread&#10;&#10;the only trained component in the system" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ece9f6;strokeColor=#4a3aa7;strokeWidth=2;fontSize=11;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="960" y="640" width="330" height="196" as="geometry" />
+    </mxCell>
+    <mxCell id="FIXW" value="FIXED   w = 0.25     dense regime  (ETTm2)&#10;selected on validation only;&#10;pipeline stays fully parameter-free" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=1.5;fontSize=11;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="960" y="856" width="330" height="70" as="geometry" />
+    </mxCell>
+    <mxCell id="OUT" value="FORECAST&#10;y ∈ ℝ^H" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f7f7f5;strokeColor=#0b0b0b;strokeWidth=2;fontSize=12.5;fontColor=#0b0b0b;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1610" y="396" width="160" height="76" as="geometry" />
+    </mxCell>
+    <mxCell id="NOTE" value="LEAKAGE GUARD  (enforced)&#10;every candidate window ends at least H steps before the&#10;forecast origin; the index and the gate are built from&#10;training origins only" style="rounded=0;whiteSpace=wrap;html=0;fillColor=#fbfbf9;strokeColor=#c3c2b7;strokeWidth=1;dashed=1;fontSize=10.5;fontColor=#52514e;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="40" y="672" width="430" height="92" as="geometry" />
+    </mxCell>
+    <mxCell id="lgT" value="Legend" style="text;html=0;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#0b0b0b;" vertex="1" parent="1">
+      <mxGeometry x="40" y="798" width="340" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="lg1" value="" style="rounded=1;html=0;fillColor=#e8f1fc;strokeColor=#2a78d6;strokeWidth=1.5;" vertex="1" parent="1">
+      <mxGeometry x="42" y="826" width="22" height="15" as="geometry" />
+    </mxCell>
+    <mxCell id="lg1t" value="Parameter-free arithmetic - 0 trainable parameters" style="text;html=0;align=left;verticalAlign=middle;fontSize=11;fontColor=#52514e;" vertex="1" parent="1">
+      <mxGeometry x="74" y="819" width="400" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="lg2" value="" style="rounded=1;html=0;fillColor=#fdece4;strokeColor=#eb6834;strokeWidth=1.5;" vertex="1" parent="1">
+      <mxGeometry x="42" y="854" width="22" height="15" as="geometry" />
+    </mxCell>
+    <mxCell id="lg2t" value="Frozen pretrained backbone - weights never updated" style="text;html=0;align=left;verticalAlign=middle;fontSize=11;fontColor=#52514e;" vertex="1" parent="1">
+      <mxGeometry x="74" y="847" width="400" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="lg3" value="" style="rounded=1;html=0;fillColor=#ece9f6;strokeColor=#4a3aa7;strokeWidth=1.5;" vertex="1" parent="1">
+      <mxGeometry x="42" y="882" width="22" height="15" as="geometry" />
+    </mxCell>
+    <mxCell id="lg3t" value="Learned - the only trained component (sparse regime)" style="text;html=0;align=left;verticalAlign=middle;fontSize=11;fontColor=#52514e;" vertex="1" parent="1">
+      <mxGeometry x="74" y="875" width="400" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#52514e;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Q" target="N1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e2" value="raw context" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#eb6834;endArrow=blockThin;endFill=1;fontSize=11;fontColor=#52514e;verticalAlign=bottom;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Q" target="B1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="127" y="62" />
+          <mxPoint x="1390" y="62" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#52514e;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="P" target="N2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#2a78d6;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.28;entryDx=0;entryDy=0;" edge="1" parent="1" source="N1" target="IDX">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#2a78d6;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.72;entryDx=0;entryDy=0;" edge="1" parent="1" source="N2" target="IDX">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#52514e;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="IDX" target="TOP">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#52514e;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="TOP" target="RES">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e8" value="query statistics ( μ_q , σ_q )  -  no learned projector" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.6;strokeColor=#2a78d6;dashed=1;endArrow=blockThin;endFill=1;fontSize=11;fontColor=#2a78d6;verticalAlign=bottom;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N1" target="RES">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="365" y="252" />
+          <mxPoint x="1117" y="252" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e9" value="y_TSFM" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.8;strokeColor=#eb6834;endArrow=blockThin;endFill=1;fontSize=11;fontColor=#52514e;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="B1" target="FUSE">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.8;strokeColor=#2a78d6;endArrow=blockThin;endFill=1;fontSize=11;fontColor=#52514e;verticalAlign=bottom;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="RES" target="FUSE">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e11" value="w" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.8;strokeColor=#4a3aa7;endArrow=blockThin;endFill=1;fontSize=11.5;fontColor=#4a3aa7;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.44;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="GATE" target="FUSE">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1400" y="738" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e12" value="w" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.5;strokeColor=#2a78d6;dashed=1;endArrow=blockThin;endFill=1;fontSize=11.5;fontColor=#2a78d6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.72;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="FIXW" target="FUSE">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1470" y="891" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e13" value="diagnostics φ  (available at the origin)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=1.4;strokeColor=#4a3aa7;dashed=1;endArrow=blockThin;endFill=1;fontSize=10.5;fontColor=#4a3aa7;verticalAlign=bottom;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="IDX" target="GATE">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="645" y="738" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;strokeWidth=2;strokeColor=#0b0b0b;endArrow=blockThin;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="FUSE" target="OUT">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

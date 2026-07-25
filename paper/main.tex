@@ -96,7 +96,23 @@ The fragility of statistical similarity in non-stationary time series is widely 
 \label{sec:method}
 % ============================================================================
 
-To resolve the catastrophic scale mismatch inherent in raw Euclidean retrieval without introducing trainable neural adapters, we propose an explicit mathematical normalization and restoration pipeline. The methodology consists of three deterministic phases: pre-retrieval scale normalization, scale-invariant neighbor search, and post-retrieval continuation restoration.
+To resolve the catastrophic scale mismatch inherent in raw Euclidean retrieval without introducing trainable neural adapters, we propose an explicit mathematical normalization and restoration pipeline, shown end to end in Fig.~\ref{fig:architecture}. The methodology consists of three deterministic phases: pre-retrieval scale normalization, scale-invariant neighbor search, and post-retrieval continuation restoration.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/architecture.pdf}
+  \caption{The ScaleRAG pipeline. Normalization, search, and restoration
+    (stages \textcircled{\scriptsize 1}--\textcircled{\scriptsize 3}) are closed-form
+    arithmetic and add no trainable parameters: the dashed path carries the query's own
+    statistics $(\mu_q, \sigma_q)$ from normalization directly to restoration, which is what
+    replaces the learned projector used by neural retrieval adapters. The backbone is frozen
+    throughout, and the candidate pool is restricted to training origins with the horizon
+    guard enforced, so no retrieved continuation can overlap the window it informs. Only the
+    fusion weight $w$ differs between regimes: a fixed constant on dense data, keeping the
+    pipeline entirely parameter-free, or a lightweight LightGBM gate---the single trained
+    component in the system---on the sparse M5 panel.}
+  \label{fig:architecture}
+\end{figure*}
 
 \subsection{Pre-Retrieval Scale Normalization}
 Let $x \in \mathbb{R}^L$ denote a univariate time series context window of length $L$. To ensure the retrieval mechanism matches temporal shape rather than absolute magnitude, we strip the absolute scale from all historical candidate sequences and the target query sequence prior to indexing.

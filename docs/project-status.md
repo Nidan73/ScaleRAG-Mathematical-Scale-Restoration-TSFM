@@ -85,8 +85,11 @@ ETTm2** as development data.
     there are no `\input`s and no `../` paths.
   - `paper/references.bib` — 22 entries. The only `.tex`-adjacent file kept separate.
   - `paper/figures/` — 6 vector PDFs, `fig1_motivation.pdf` … `fig6_sensitivity.pdf`,
-    written directly by `scripts/make_phase11a_figures.py` (a 7th, `architecture.pdf`, is a
-    manually-drawn pipeline diagram, still not created).
+    written directly by `scripts/make_phase11a_figures.py`, plus `architecture.pdf` — the
+    end-to-end pipeline diagram (Fig. 1 of the paper), authored in draw.io and kept as
+    editable source alongside it in `architecture.drawio`. It is vector, fonts embedded and
+    subsetted, no raster layers. Re-export from the `.drawio` with **Dark unchecked** and a
+    border (the first export was dark-themed and edge-clipped).
 
   **Figure-design rules** (redrawn 2026-07-26; the script enforces them):
   - **One y-axis per panel — never a twin axis.** Two measures of different scale become
@@ -130,8 +133,6 @@ ETTm2** as development data.
 
 - ~~Rename the GitHub repository~~ — **done 2026-07-26**; remote points at
   `ScaleRAG-Mathematical-Scale-Restoration-TSFM` and pushing is verified.
-- Draw/add `paper/figures/architecture.pdf` (manual pipeline diagram, referenced by the
-  audit report but not yet created, and not yet `\includegraphics`'d by `paper/main.tex`).
 - Obtain `svjour3.cls` + `spmpsci.bst` (Springer template) — not installed locally, so the
   manuscript has only been verified against a shim class. Re-verify on Overleaf.
 - Draft the remaining paper sections around the frozen tables/figures/audit report.
