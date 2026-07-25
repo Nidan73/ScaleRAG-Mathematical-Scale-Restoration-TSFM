@@ -3,6 +3,35 @@
 Project memory for Claude Code. Keep concise. Procedures live in `.claude/skills/`;
 file-scoped rules in `.claude/rules/`.
 
+## Repo identity (renamed 2026-07-24 — read this first)
+
+- **Local folder** is now `<project>` (was `<project>`).
+  Renamed via plain `mv`; git history and working tree carried over intact, nothing lost.
+- ✅ **RESOLVED 2026-07-26 — remote is correct and pushing works.** The GitHub repo is named
+  **`ScaleRAG-Mathematical-Scale-Restoration-TSFM`** (not `ScaleRAG-TS` — that name was an
+  interim guess and never existed on GitHub). `origin` now points at
+  `https://github.com/Nidan73/ScaleRAG-Mathematical-Scale-Restoration-TSFM.git`
+  (user `Nidan73`), set via `git remote set-url`. Verified with `git ls-remote` and a
+  successful push of `hf-demo`. No pending action.
+- **Intentionally NOT renamed:** the Python package is still `graphroute_ts`
+  (`src/graphroute_ts/`, `import graphroute_ts`, `pyproject.toml` `name = "graphroute-ts"`,
+  venv `pyvenv.cfg` `prompt = graphroute-ts`). Only the outer folder and the GitHub repo
+  name are part of this rename — renaming the Python package would touch every import
+  across the whole codebase and was never requested. Do not "fix" this unprompted.
+- **Fallout of the `mv`, and what did NOT self-resolve.** Renaming the directory a running
+  session is rooted in breaks that session's own hooks (`$CLAUDE_PROJECT_DIR` is fixed at
+  session start); *that* part does self-resolve on the next fresh session from the new path.
+  **The venv did not.** `pip`/`uv` bake absolute paths into installed artifacts, and `mv`
+  does not rewrite them, so 75 console scripts in `.venv/bin/` (pytest, ruff, mypy, jupyter…)
+  kept the shebang `#!<project>/.venv/bin/python`, the `activate*` scripts
+  kept the old `VIRTUAL_ENV`, and the editable-install pointers
+  (`_editable_impl_graphroute_ts.pth`, `direct_url.json`) still pointed at the old `src/`.
+  Symptom was a confusing `FileNotFoundError: .../.venv/bin/pytest` on a file that exists
+  (the kernel reports ENOENT against the script when the *shebang interpreter* is missing),
+  then `ModuleNotFoundError: No module named 'graphroute_ts'`. **Fixed 2026-07-26** by
+  rewriting all stale paths in place; `make check` fast suite passes (119 tests). If the
+  folder is ever moved again, re-run that substitution or `uv sync` to rebuild the venv.
+
 ## Objective (PIVOTED — read this)
 
 Originally **GraphRoute-TS** (relation-aware graph routing for TSFM retrieval). That
