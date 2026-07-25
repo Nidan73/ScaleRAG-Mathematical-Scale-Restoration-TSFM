@@ -12,7 +12,7 @@ Every value is sourced from a real artifact — no fabricated numbers:
 * fig1 / fig3 exemplar windows             -> reconstructed with the frozen retriever
                                               (:mod:`graphroute_ts.scalerag_native`)
 
-Outputs vector PDFs to ``docs/figures/`` in IEEE/AII-style serif styling.
+Outputs vector PDFs to ``paper/figures/`` in IEEE/AII-style serif styling.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from graphroute_ts.scalerag_native import NativeScaleRetriever
 
 ROOT = Path(__file__).resolve().parents[1]
 P11 = ROOT / "reports/phase11a"
-FIG = ROOT / "docs/figures"
+FIG = ROOT / "paper/figures"
 
 # ---- colour + style (high contrast, colour-blind aware) -----------------------------
 C_QUERY = "#111111"

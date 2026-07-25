@@ -258,6 +258,6 @@ appear in a submission.
 `docs/tsrag-ettm2-reproduction.md` (TS-RAG reproduction ≤0.10%),
 `docs/scalerag-native-dev-report.md` & `docs/scalerag-native-dev-results.json` (Phase-11A
 mechanisms, CIs, per-series), `docs/phase11b-preregistration.md` (frozen, not executed),
-`docs/figures/fig1…fig6` + `architecture.pdf` (publication figures), `reports/phase11a/*` (per-window preds,
+`paper/figures/fig1…fig6` + `architecture.pdf` (publication figures), `reports/phase11a/*` (per-window preds,
 compute JSONs), `reports/scalerag-heldout-{val,test}-30490.json` (M5 full-panel),
 `reports/scalerag-favorita.json` (Favorita +0.83%).

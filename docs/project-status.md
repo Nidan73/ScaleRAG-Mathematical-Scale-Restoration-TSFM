@@ -77,19 +77,22 @@ ETTm2** as development data.
   Pareto/efficiency argument — 0 trainable params vs. TS-RAG's 4.78 M, and statistical
   restoration is uniquely suited to extreme sparsity (M5) where neural retrieval
   struggles; concede TS-RAG wins on dense data (ETTm2).
-- `docs/figures/` — 6 pdflatex-clean vector figures, `fig1_motivation.pdf` …
-  `fig6_sensitivity.pdf` (a 7th, `architecture.pdf`, is a manually-drawn pipeline diagram,
-  not yet added).
-- `latex_assets/` — 3 booktabs tables: `table1_main_results.tex` (ETTm2 target-only vs.
-  TS-RAG vs. ScaleRAG), `table2_ablation.tex` (raw vs. restored, M5 + ETTm2),
-  `table3_compute.tex` (params/latency/VRAM/RAM/storage). All pdflatex-compiled and
-  visually verified (no overfull boxes, no undefined commands). Converted to `table*`
-  (2026-07-26) so they span the two-column spread; no numbers changed.
-- `manuscript/` (2026-07-26, commit `cf34ac0`) — modular Overleaf-ready Springer project:
-  `main.tex` (svjour3, twocolumn) + `sec_{introduction,related_work,methodology,
-  experiments,conclusion}.tex` + `references.bib` (22 entries). `\input`s all 3 tables and
-  `\includegraphics`es all 6 figures. Verified 0 overfull hboxes / 0 undefined refs /
-  0 undefined citations / 0 bibtex warnings.
+- **`paper/` — the single home for everything paper-related** (consolidated 2026-07-26).
+  Upload this one folder to Overleaf; nothing outside it is needed.
+  - `paper/main.tex` — the **whole manuscript in one file**: svjour3 twocolumn preamble,
+    abstract, all five sections, and all three tables inlined as `table*` (each keeping its
+    full source-provenance comment block). Figures are referenced as `figures/figN_*.pdf`;
+    there are no `\input`s and no `../` paths.
+  - `paper/references.bib` — 22 entries. The only `.tex`-adjacent file kept separate.
+  - `paper/figures/` — 6 vector PDFs, `fig1_motivation.pdf` … `fig6_sensitivity.pdf`,
+    written directly by `scripts/make_phase11a_figures.py` (a 7th, `architecture.pdf`, is a
+    manually-drawn pipeline diagram, still not created).
+
+  Supersedes the former `manuscript/` (5 section files) and `latex_assets/` (3 table files),
+  both removed in the same commit — their content is preserved verbatim inside `main.tex`,
+  including the `table` → `table*` fix so the tables span the two-column spread. No numbers
+  were changed at any point. Verified 0 overfull hboxes / 0 undefined refs /
+  0 undefined citations / 0 bibtex warnings / 22-of-22 citation keys matched.
   **Claims are aligned to the locked results:** the LightGBM gate is named as the sole
   trainable component (M5 is *not* parameter-free), retrieval is described as exact —
   FAISS-CPU for ETTm2, bit-identical batched-GPU for the M5 full panel, never
@@ -110,8 +113,8 @@ ETTm2** as development data.
 
 - ~~Rename the GitHub repository~~ — **done 2026-07-26**; remote points at
   `ScaleRAG-Mathematical-Scale-Restoration-TSFM` and pushing is verified.
-- Draw/add `docs/figures/architecture.pdf` (manual pipeline diagram, referenced by the
-  audit report but not yet created, and not yet `\includegraphics`'d by the manuscript).
+- Draw/add `paper/figures/architecture.pdf` (manual pipeline diagram, referenced by the
+  audit report but not yet created, and not yet `\includegraphics`'d by `paper/main.tex`).
 - Obtain `svjour3.cls` + `spmpsci.bst` (Springer template) — not installed locally, so the
   manuscript has only been verified against a shim class. Re-verify on Overleaf.
 - Draft the remaining paper sections around the frozen tables/figures/audit report.
