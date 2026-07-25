@@ -11,7 +11,11 @@
 % listed alongside it as an unlike-for-unlike storage reference, not a fair comparison
 % (ScaleRAG deliberately restricts to a stricter, train-only candidate pool).
 % Requires \usepackage{graphicx} for \resizebox (wide 6-column table).
-\begin{table}[t]
+% Layout: two-column journal style (svjour3 twocolumn) -- spans both columns via table*.
+% Inside table*, \textwidth is the full two-column text width, so \resizebox{\textwidth}
+% constrains the tabular to the spread exactly (in a single-column table it would have
+% overflowed the column by ~half the page).
+\begin{table*}[t]
   \centering
   \caption{Measured compute, storage, and trainable-parameter accounting (ETTm2, one machine,
     batch 256, warm-up excluded). ScaleRAG's retrieval index is CPU-resident (0 VRAM);
@@ -34,4 +38,4 @@
   \\[4pt]
   {\footnotesize $^{\ast}$Full-series official knowledge base (not train-only); listed for
    storage reference, not a like-for-like index-size comparison.}
-\end{table}
+\end{table*}

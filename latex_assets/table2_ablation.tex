@@ -6,7 +6,8 @@
 % Source (ETTm2): docs/scalerag-native-dev-results.json, test_mechanisms.A_restoration
 %                 (frozen config scale=mean, k=20; test split, n=80,199 windows,
 %                 paired-bootstrap 95% CI, window-level).
-\begin{table}[t]
+% Layout: two-column journal style (svjour3 twocolumn) -- spans both columns via table*.
+\begin{table*}[t]
   \centering
   \caption{Scale restoration is decisive on both datasets. Raw retrieval normalises context
     windows for matching but does not rescale the retrieved continuation; restored retrieval
@@ -23,4 +24,4 @@
     ETTm2 (test)    & MSE   & 2.9989 & 0.4376 & $+85.4\%$ \; [$+85.2\%$, $+85.6\%$] \\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{table*}

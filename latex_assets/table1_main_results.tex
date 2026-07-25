@@ -12,7 +12,8 @@
 % CI was computed for this pair). The ScaleRAG deltas ARE from our own paired bootstrap
 % (2,000 resamples, window-level) and are the only CIs in this table (rule: no significance
 % claim without a valid CI).
-\begin{table}[t]
+% Layout: two-column journal style (svjour3 twocolumn) -- spans both columns via table*.
+\begin{table*}[t]
   \centering
   \caption{Main results on ETTm2 (test, $n=80{,}199$ windows). $\Delta$MSE is the relative
     change vs.\ target-only Chronos-Bolt (positive = improvement). ScaleRAG's $\Delta$ values
@@ -28,4 +29,4 @@
     ScaleRAG (restored fixed fusion)   & 0.1498 & 0.2407 & $-0.85\%$ \; [$-1.39\%$, $-0.28\%$] \\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{table*}

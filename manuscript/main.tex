@@ -1,0 +1,42 @@
+\documentclass[twocolumn]{svjour3}          % twocolumn
+\smartqed  % flush right qed marks, e.g. at end of proof
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{url}
+
+\journalname{Applied Intelligence}
+
+\begin{document}
+
+\title{Mathematical Scale Restoration: Parameter-Free Retrieval Augmentation for Time Series Foundation Models}
+
+% == ANONYMISED: the same study is under anonymous review elsewhere, and this
+% == repository is public. Fill in the camera-ready block once it closes.
+\author{Anonymous Submission}
+
+\institute{}
+
+\date{Received: date / Accepted: date}
+
+\maketitle
+
+\begin{abstract}
+Time Series Foundation Models (TSFMs) promise zero-shot forecasting, yet recent retrieval-augmented generation (RAG) approaches rely on expensive, dataset-specific neural adapters to fuse historical context. While neural mixers natively handle scale variations in dense, continuous data, their computational overhead breaks the zero-shot paradigm. Conversely, parameter-free statistical retrieval (k-NN) suffers from catastrophic scale mismatch when historical continuations differ in magnitude from the query sequence.
+In this paper, we propose \textit{ScaleRAG}, a universal mathematical framework whose retrieval and scale-restoration stages are entirely parameter-free: explicit scale normalization prior to indexing and exact statistical scale restoration post-retrieval, with no learned projector and no neural encoder. Through rigorous ablation across both sparse retail (M5) and dense sensor (ETTm2) regimes, we show that explicit restoration prevents a 3.8$\times$ degradation in RMSSE on sparse data and recovers retrieval quality by +85.4\% across modalities. On the dense ETTm2 benchmark the restored candidate is fused with the frozen backbone through a fixed, fully parameter-free weight; on the sparse M5 panel we add a single lightweight learned component---a LightGBM gate over six diagnostic features, fitted on training origins only---which is the only trainable part of the pipeline. Furthermore, we define a regime taxonomy: neural RAG dominates continuous datasets, while explicitly restored statistical retrieval yields its largest gains in intermittent, scale-heterogeneous regimes. We report this boundary honestly---on the held-out M5 test panel ScaleRAG improves squared-error accuracy over its frozen backbone but does not meet our pre-registered improvement threshold over strong classical baselines and does not win the official WRMSSE---and argue that the contribution is a validated mechanism and regime taxonomy rather than a state-of-the-art accuracy claim.
+\keywords{Time Series Forecasting \and Retrieval-Augmented Generation \and Foundation Models \and Zero-Shot Learning \and Scale Invariance}
+\end{abstract}
+
+\input{sec_introduction}
+\input{sec_related_work}
+\input{sec_methodology}
+\input{sec_experiments}
+\input{sec_conclusion}
+
+\bibliographystyle{spmpsci}
+\bibliography{references}
+
+\end{document}

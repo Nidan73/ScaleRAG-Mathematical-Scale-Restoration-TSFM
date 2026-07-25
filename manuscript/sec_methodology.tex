@@ -1,0 +1,48 @@
+\section{Methodology}
+\label{sec:methodology}
+\label{sec:method}
+
+To resolve the catastrophic scale mismatch inherent in raw Euclidean retrieval without introducing trainable neural adapters, we propose an explicit mathematical normalization and restoration pipeline. The methodology consists of three deterministic phases: pre-retrieval scale normalization, scale-invariant neighbor search, and post-retrieval continuation restoration.
+
+\subsection{Pre-Retrieval Scale Normalization}
+Let $x \in \mathbb{R}^L$ denote a univariate time series context window of length $L$. To ensure the retrieval mechanism matches temporal shape rather than absolute magnitude, we strip the absolute scale from all historical candidate sequences and the target query sequence prior to indexing.
+
+For each sequence $x$, we compute the context mean $\mu$ and the Root Mean Square (RMS) deviation $\sigma_{\text{RMS}}$:
+\begin{equation}
+\mu = \frac{1}{L}\sum_{t=1}^{L}x_t
+\end{equation}
+\begin{equation}
+\sigma_{\text{RMS}} = \sqrt{\frac{1}{L}\sum_{t=1}^{L}(x_t-\mu)^2}
+\end{equation}
+
+The sequence is then normalized into a scale-invariant representation $x^*$:
+\begin{equation}
+x^* = \frac{x-\mu}{\sigma_{\text{RMS}} + \varepsilon}
+\end{equation}
+where $\varepsilon$ is a small numerical constant to prevent division by zero. All historical candidates are transformed into this normalized space and indexed using FAISS (Facebook AI Similarity Search) with an exact $L_2$ distance metric.
+
+\subsection{Scale-Invariant Nearest Neighbor Search}
+Given a normalized target query context $q^* \in \mathbb{R}^L$, the retriever identifies the top-$k$ nearest neighbors from the indexed historical corpus. Because both the query and the historical corpus exist in the normalized space, the FAISS engine reliably identifies structural shape similarities irrespective of differing absolute sales volumes or sensor magnitudes.
+
+\subsection{Explicit Scale Restoration of the Continuation}
+Each retrieved historical candidate consists of a normalized context history and a corresponding normalized future continuation, denoted as $y^*_{\text{retrieved}} \in \mathbb{R}^H$, where $H$ is the forecast horizon.
+
+Before fusing this historical future with the foundation model's zero-shot prediction, the continuation must be mathematically reconstructed to match the specific absolute magnitude of the current target query. Using the pre-calculated statistics of the query context ($\mu_q, \sigma_q$), we perform explicit scale restoration:
+\begin{equation}
+y_{\text{restored}} = y^*_{\text{retrieved}} \cdot \sigma_q + \mu_q
+\end{equation}
+
+This deterministic transformation guarantees that the retrieved continuation reflects the exact magnitude baseline of the current forecast origin, replacing the function of a learned neural projector with a zero-parameter mathematical formulation.
+
+\subsection{Fusion with the Frozen Backbone}
+\label{sec:fusion}
+The restored continuation $y_{\text{restored}}$ is combined with the frozen backbone's zero-shot prediction $\hat{y}_{\text{TSFM}}$ by a convex weight $w \in [0,1]$:
+\begin{equation}
+\hat{y} = (1-w)\,\hat{y}_{\text{TSFM}} + w\,y_{\text{restored}}
+\end{equation}
+
+We instantiate $w$ in two ways, and the distinction is material to the parameter accounting reported in Sec.~\ref{sec:experiments}.
+
+\paragraph{Fixed fusion (parameter-free).} On dense, continuous data we fix $w$ to a single constant selected on the validation split only ($w=0.25$, $k=20$, mean scaling). No component of the pipeline is trained, and the method inherits the backbone's zero-shot deployment profile exactly.
+
+\paragraph{Gated fusion (one lightweight learned component).} On sparse, intermittent panels the utility of retrieval varies strongly across series: for high-volume, regular items the frozen backbone is already close to optimal, whereas for zero-inflated items the restored continuation carries most of the signal. We therefore predict a per-series, per-origin weight $w = g(\phi)$ with a gradient-boosted regression tree (LightGBM \cite{lightgbm}) over a six-dimensional diagnostic feature vector $\phi$ comprising the nearest-neighbour distance, the disagreement among the $k$ restored continuations, an intermittency statistic, log-volume, the backbone's own predictive uncertainty, and the scale spread of the retrieved neighbours. Crucially, $\phi$ is computed entirely from information available at the forecast origin, and $g$ is fitted on training origins only---never on validation or test origins---so no target information from the evaluation period enters the gate. This gate is the only trainable element of ScaleRAG.
