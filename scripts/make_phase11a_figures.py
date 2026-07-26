@@ -9,10 +9,20 @@ Every value is sourced from a real artifact — no fabricated numbers:
 * M5 ablation (restoration, top-k)         -> ``docs/ablation-report.md`` (cited constants)
 * M5 regime slices + cross-dataset utility -> ``reports/scalerag-heldout-val-30490.json``,
                                               ``reports/scalerag-favorita.json``
-* fig1 / fig4 exemplar windows             -> reconstructed with the frozen retriever
+* fig1 / fig3 exemplar windows             -> reconstructed with the frozen retriever
                                               (:mod:`graphroute_ts.scalerag_native`)
 
-Outputs vector PDFs to ``docs/figures/`` in IEEE/AII-style serif styling.
+Outputs vector PDFs to ``paper/figures/`` in journal-style serif.
+
+Design rules applied (see the figure-design notes in ``docs/project-status.md``):
+
+* **One y-axis per panel.** Two measures of different scale become small multiples,
+  never a twin axis — a dual-scale plot invents a correlation the data does not have.
+* **Direct end-labels** on lines instead of legend boxes parked over the data; a legend
+  is used only where marks cannot be labelled in place.
+* Solid hairline gridlines on the value axis only; top/right spines dropped.
+* Categorical palette below is validated colour-blind-safe on an all-pairs basis
+  (worst deutan ΔE 13.0, worst normal-vision ΔE 16.3, all ≥3:1 on white).
 """
 
 from __future__ import annotations
@@ -34,17 +44,19 @@ from graphroute_ts.scalerag_native import NativeScaleRetriever
 
 ROOT = Path(__file__).resolve().parents[1]
 P11 = ROOT / "reports/phase11a"
-FIG = ROOT / "docs/figures"
+FIG = ROOT / "paper/figures"
 
-# ---- colour + style (high contrast, colour-blind aware) -----------------------------
-C_QUERY = "#111111"
-C_TRUE = "#111111"
-C_BACKBONE = "#1f77b4"  # steel blue
-C_SCALERAG = "#d62728"  # crimson
-C_TSRAG = "#2ca02c"  # green
-C_RAW = "#8c8c8c"  # grey
-C_RESTORE = "#d62728"
-PALETTE = ["#d62728", "#1f77b4", "#2ca02c", "#ff7f0e", "#9467bd"]
+# ---- palette (validated all-pairs CVD-safe; see module docstring) --------------------
+C_OURS = "#2a78d6"  # blue    — ScaleRAG / scale-restored (the proposed mechanism)
+C_RAW = "#eb6834"  # orange  — raw retrieval / target-only backbone (the comparison)
+C_TSRAG = "#4a3aa7"  # violet  — official TS-RAG neural adapter
+C_BAND = "#c6dcf7"  # blue tint for the retrieved-candidate envelope
+
+INK = "#0b0b0b"  # primary ink (ground truth, emphasis)
+INK_2 = "#52514e"  # secondary ink (labels)
+INK_MUTED = "#898781"  # muted ink (context, annotations)
+GRID = "#e1e0d9"  # hairline grid
+RULE = "#c3c2b7"  # baseline / axis
 
 
 def _style() -> None:
@@ -54,21 +66,66 @@ def _style() -> None:
             "font.serif": ["Liberation Serif", "Times New Roman", "DejaVu Serif"],
             "mathtext.fontset": "stix",
             "axes.grid": True,
-            "grid.alpha": 0.30,
-            "grid.linestyle": "--",
+            "axes.axisbelow": True,
+            "grid.color": GRID,
+            "grid.alpha": 1.0,
+            "grid.linestyle": "-",  # solid hairline: dashes read as "threshold"
             "grid.linewidth": 0.6,
-            "font.size": 11,
-            "axes.labelsize": 12,
-            "axes.titlesize": 12,
-            "xtick.labelsize": 10,
-            "ytick.labelsize": 10,
-            "legend.fontsize": 9.5,
+            "font.size": 9.5,
+            "axes.labelsize": 10,
+            "axes.titlesize": 10,
+            "axes.labelcolor": INK_2,
+            "axes.edgecolor": RULE,
+            "axes.linewidth": 0.8,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "xtick.color": INK_2,
+            "ytick.color": INK_2,
+            "legend.fontsize": 9,
             "figure.dpi": 150,
             "savefig.bbox": "tight",
             "pdf.fonttype": 42,  # embed editable TrueType (journal-safe)
             "ps.fonttype": 42,
-            "axes.linewidth": 0.8,
         }
+    )
+
+
+def _despine(ax: plt.Axes, keep_x: bool = True) -> None:
+    """Drop top/right spines and the x gridlines (value axis carries the grid)."""
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.grid(axis="x", visible=not keep_x)
+    ax.grid(axis="y", visible=True)
+
+
+def _panel(ax: plt.Axes, text: str) -> None:
+    ax.set_title(text, loc="left", color=INK, pad=8)
+
+
+def _end_label(
+    ax: plt.Axes,
+    x: float,
+    y: float,
+    text: str,
+    color: str,
+    dx: float = 4,
+    dy: float = 0,
+    ha: str = "left",
+    va: str = "center",
+    weight: str = "normal",
+) -> None:
+    """Direct-label a line at a chosen point, in ink-with-colour rather than a legend box."""
+    ax.annotate(
+        text,
+        (x, y),
+        textcoords="offset points",
+        xytext=(dx, dy),
+        ha=ha,
+        va=va,
+        fontsize=8.5,
+        color=color,
+        fontweight=weight,
+        zorder=6,
     )
 
 
@@ -106,7 +163,8 @@ def fig1_motivation() -> None:
 
     Across the smoother ETTm2 channels, pick the real (query, top-1 candidate) pair whose
     candidate continuation best matches the query's future *shape* while differing most in
-    *scale* — the exact case scale restoration is designed for.
+    *scale* — the exact case scale restoration is designed for. Selection criteria are
+    unchanged from the original figure; only the rendering differs.
     """
     z, names = E.load_normalized()
     scale = "rms"
@@ -137,99 +195,120 @@ def fig1_motivation() -> None:
     assert best is not None, "no eligible shape-match/scale-gap window found"
     _, var, q_ctx, q_true, cand_cont, cp1, qp1 = best
     restored = (cand_cont - cp1[0]) / cp1[1] * qp1[1] + qp1[0]
-    qp = qp1
-    cp = cp1
 
     tail = 96
     hx = np.arange(-tail, 0)
     fx = np.arange(0, E.H)
-    fig, ax = plt.subplots(1, 3, figsize=(11.5, 3.1), sharey=True)
+    fig, ax = plt.subplots(1, 2, figsize=(7.4, 2.9), sharey=True)
 
-    ax[0].plot(hx, q_ctx[-tail:], color=C_QUERY, lw=1.4, label="query context")
-    ax[0].plot(fx, q_true, color=C_TRUE, lw=1.8, label="query future (truth)")
-    ax[0].axvline(0, color="k", lw=0.6, ls=":")
-    ax[0].set_title("(a) Query window", loc="left")
-    ax[0].set_xlabel("step relative to forecast origin")
+    for a_, cand, col, lab in (
+        (ax[0], cand_cont, C_RAW, "raw retrieved\ncandidate"),
+        (ax[1], restored, C_OURS, "scale-restored\ncandidate"),
+    ):
+        a_.axvspan(-tail, 0, color=GRID, alpha=0.45, lw=0, zorder=0)
+        a_.plot(hx, q_ctx[-tail:], color=INK_MUTED, lw=1.0, zorder=2)
+        a_.plot(fx, q_true, color=INK, lw=1.9, zorder=4)
+        a_.plot(fx, cand, color=col, lw=1.7, zorder=3)
+        # shade the residual gap the mechanism is meant to close
+        a_.fill_between(fx, q_true, cand, color=col, alpha=0.13, lw=0, zorder=1)
+        a_.axvline(0, color=RULE, lw=0.8, zorder=1)
+        a_.set_xlabel("step relative to forecast origin")
+        _despine(a_)
+        _end_label(a_, fx[-1], q_true[-1], "query future\n(ground truth)", INK, dx=5)
+        _end_label(a_, fx[-1], cand[-1], lab, col, dx=5)
+        a_.set_xlim(-tail, E.H + 34)
+
     ax[0].set_ylabel("normalized value")
-    ax[0].legend(frameon=False, loc="upper left")
-
-    ax[1].plot(fx, q_true, color=C_TRUE, lw=1.8, label="query future (truth)")
-    ax[1].plot(fx, cand_cont, color=C_RAW, lw=1.8, ls="-", label="raw NN candidate")
-    ax[1].set_title(
-        f"(b) Raw Euclidean match  (rms $\\times${1 / (qp[1] / cp[1]):.2f})", loc="left"
+    rms_ratio = cp1[1] / qp1[1]
+    _panel(ax[0], f"(a) Raw Euclidean match — off by rms $\\times${rms_ratio:.2f}")
+    _panel(ax[1], "(b) After explicit scale restoration")
+    ax[0].annotate(
+        "context window\n(used for matching)",
+        xy=(-tail / 2, ax[0].get_ylim()[0]),
+        xytext=(0, 6),
+        textcoords="offset points",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        color=INK_MUTED,
     )
-    ax[1].set_xlabel("horizon step")
-    ax[1].legend(frameon=False, loc="upper left")
-
-    ax[2].plot(fx, q_true, color=C_TRUE, lw=1.8, label="query future (truth)")
-    ax[2].plot(fx, restored, color=C_RESTORE, lw=1.8, label="restored candidate")
-    ax[2].set_title("(c) After scale restoration", loc="left")
-    ax[2].set_xlabel("horizon step")
-    ax[2].legend(frameon=False, loc="upper left")
-
-    fig.suptitle(
-        f"Scale restoration aligns a mis-scaled retrieved candidate (ETTm2 · channel {names[var]})",
-        y=1.02,
-        fontsize=12,
+    fig.text(
+        0.5,
+        -0.06,
+        f"ETTm2 · channel {names[var]} · a single real (query, top-1 candidate) pair",
+        ha="center",
+        fontsize=8.5,
+        color=INK_MUTED,
     )
     fig.savefig(FIG / "fig1_motivation.pdf")
     plt.close(fig)
 
 
-# ---- fig3: ablation -----------------------------------------------------------------
+# ---- fig2: ablation -----------------------------------------------------------------
 # M5 ablation constants — source: docs/ablation-report.md (1,000-series val)
 M5_NO_RESTORE = 2.7884
 M5_RESTORE = 0.7425
 
 
-def fig3_ablation() -> None:
+def _dumbbell(
+    ax: plt.Axes, ys: np.ndarray, raw: np.ndarray, res: np.ndarray, label_first: bool
+) -> None:
+    """One row per category: orange dot (raw) -> blue dot (restored), joined by a rule."""
+    ax.hlines(ys, raw, res, color=RULE, lw=1.6, zorder=1)
+    ax.scatter(raw, ys, s=46, color=C_RAW, zorder=3, edgecolor="white", lw=1.0)
+    ax.scatter(res, ys, s=46, color=C_OURS, zorder=3, edgecolor="white", lw=1.0)
+    if label_first:
+        # anchor the two identity labels on the widest row so they cannot collide
+        w = int(np.argmax(np.abs(np.log10(raw) - np.log10(res))))
+        _end_label(ax, raw[w], ys[w], "raw", C_RAW, dx=0, dy=9, ha="center", va="bottom")
+        _end_label(ax, res[w], ys[w], "restored", C_OURS, dx=0, dy=9, ha="center", va="bottom")
+
+
+def fig2_ablation() -> None:
     d = load_ettm2_test()
     per = d["dev"]["test_per_series"]["A_restoration"]["per_series"]
     labels = [r["var"] for r in per]
     raw = np.array([r["baseline_mse"] for r in per])
     res = np.array([r["method_mse"] for r in per])
 
+    order = np.argsort(-raw)  # worst raw at the top
+    labels = [labels[i] for i in order]
+    raw, res = raw[order], res[order]
+
     fig, (ax_l, ax_r) = plt.subplots(
-        1, 2, figsize=(11.0, 3.6), gridspec_kw={"width_ratios": [2.4, 1]}
+        1, 2, figsize=(7.4, 2.9), gridspec_kw={"width_ratios": [2.5, 1], "wspace": 0.45}
     )
-    x = np.arange(len(labels))
-    bw = 0.4
-    ax_l.bar(x - bw / 2, raw, bw, color=C_RAW, label="raw retrieval (no restoration)")
-    ax_l.bar(x + bw / 2, res, bw, color=C_RESTORE, label="scale-restored retrieval")
-    ax_l.set_yscale("log")
-    ax_l.set_xticks(x)
-    ax_l.set_xticklabels(labels)
-    ax_l.set_ylabel("retrieval MSE (log scale)")
-    ax_l.set_xlabel("ETTm2 channel")
-    ax_l.set_title(
-        "(a) ETTm2 test: restoration cuts retrieval MSE  (+85.4% aggregate, 7/7)", loc="left"
-    )
-    ax_l.legend(frameon=False)
-    ax_l.grid(axis="x", visible=False)
 
-    xb = np.array([0, 1])
-    bars = ax_r.bar(
-        xb,
-        [M5_NO_RESTORE, M5_RESTORE],
-        0.6,
-        color=[C_RAW, C_RESTORE],
-    )
-    ax_r.set_xticks(xb)
-    ax_r.set_xticklabels(["no\nrestoration", "scale\nrestored"])
-    ax_r.set_ylabel("M5 RMSSE")
-    ax_r.set_title("(b) M5 (1k): 3.8$\\times$ worse\nwithout restoration", loc="left")
-    for b, v in zip(bars, [M5_NO_RESTORE, M5_RESTORE], strict=True):
-        ax_r.text(b.get_x() + b.get_width() / 2, v + 0.05, f"{v:.3f}", ha="center", fontsize=9.5)
-    ax_r.grid(axis="x", visible=False)
-    ax_r.set_ylim(0, M5_NO_RESTORE * 1.15)
+    ys = np.arange(len(labels))[::-1]
+    _dumbbell(ax_l, ys, raw, res, label_first=True)
+    ax_l.set_xscale("log")
+    ax_l.set_yticks(ys)
+    ax_l.set_yticklabels(labels)
+    ax_l.set_xlabel("retrieval MSE (log scale, lower better)")
+    ax_l.set_ylim(-0.9, len(labels) - 0.1)
+    _panel(ax_l, "(a) ETTm2 test — all 7/7 channels improve")
+    ax_l.grid(axis="x", visible=True)
+    ax_l.grid(axis="y", visible=False)
 
-    fig.suptitle("Scale restoration is decisive in both regimes", y=1.03, fontsize=12.5)
-    fig.savefig(FIG / "fig3_ablation.pdf")
+    ym = np.array([0.0])
+    _dumbbell(ax_r, ym, np.array([M5_NO_RESTORE]), np.array([M5_RESTORE]), label_first=False)
+    ax_r.set_yticks(ym)
+    ax_r.set_yticklabels(["M5 (1k, val)"])
+    ax_r.set_xlabel("RMSSE (lower better)")
+    ax_r.set_xlim(0, M5_NO_RESTORE * 1.28)
+    ax_r.set_ylim(-0.9, 0.9)
+    _panel(ax_r, "(b) M5 — 3.8$\\times$ lower")
+    ax_r.grid(axis="x", visible=True)
+    ax_r.grid(axis="y", visible=False)
+    _end_label(ax_r, M5_NO_RESTORE, 0.0, f"{M5_NO_RESTORE:.3f}", C_RAW, dx=0, dy=10, ha="center")
+    _end_label(ax_r, M5_RESTORE, 0.0, f"{M5_RESTORE:.3f}", C_OURS, dx=0, dy=-16, ha="center")
+
+    fig.savefig(FIG / "fig2_ablation.pdf")
     plt.close(fig)
 
 
-# ---- fig4: qualitative --------------------------------------------------------------
-def fig4_qualitative() -> None:
+# ---- fig3: qualitative --------------------------------------------------------------
+def fig3_qualitative() -> None:
     d = load_ettm2_test()
     z, names = E.load_normalized()
     scale, var, k = "mean", 6, 20  # OT: mid-scale, well-behaved channel
@@ -240,19 +319,27 @@ def fig4_qualitative() -> None:
     tot = int(w["tot"])
     # row offset of this channel in the canonical bundle (var outer, window inner)
     base_row = var * tot
-    # pick a window with a clear, non-trivial future (above-median future variance)
+    # Pick a *representative* window rather than a flattering one: among windows with a
+    # non-trivial future (above-median variance, so the plot shows structure), take the one
+    # whose fused ScaleRAG error is closest to that subset's median. Typical, not best-case.
     fut_var = tru.var(axis=1)
-    order = np.argsort(-fut_var)
-    s = int(order[order.size // 20])  # a high-variance but not extreme window
+    cand_rows = np.flatnonzero(fut_var > np.median(fut_var))
+    fused_all = (
+        0.75 * d["chronos"][base_row + cand_rows] + 0.25 * d["res_mean_20"][base_row + cand_rows]
+    )
+    err = ((fused_all - tru[cand_rows]) ** 2).mean(axis=1)
+    s = int(cand_rows[np.argmin(np.abs(err - np.median(err)))])
     q_ctx, q_true, q_org = ctx[s], tru[s], int(org[s])
     row = base_row + s
 
     tk = retr.retrieve(q_ctx[None, :], np.array([q_org]), k)
-    ids3 = tk.ids[0, :3]
-    conts = retr.db.continuations[ids3]
-    cp, qp = retr.params[ids3], tk.qparams[0]
-    restored3 = (conts - cp[:, 0:1]) / cp[:, 1:2] * qp[1] + qp[0]
-    res_mean = d["res_mean_20"][row]
+    ids = tk.ids[0]
+    conts = retr.db.continuations[ids]
+    cp, qp = retr.params[ids], tk.qparams[0]
+    # all k restored candidates -> an envelope, rather than 3 unreadable spaghetti lines
+    restored_k = (conts - cp[:, 0:1]) / cp[:, 1:2] * qp[1] + qp[0]
+    lo, hi = restored_k.min(axis=0), restored_k.max(axis=0)
+    res_mean = d["res_mean_20"][row]  # locked artifact: mean of the k restored candidates
     chronos = d["chronos"][row]
     fused = 0.75 * chronos + 0.25 * res_mean  # frozen weight 0.25
     tsrag = d["tsrag"][row]
@@ -260,37 +347,56 @@ def fig4_qualitative() -> None:
     fx = np.arange(0, E.H)
     tail = 96
     hx = np.arange(-tail, 0)
-    fig, (ax_t, ax_b) = plt.subplots(2, 1, figsize=(7.6, 5.6), sharex=True)
+    fig, (ax_t, ax_b) = plt.subplots(2, 1, figsize=(7.4, 5.0), sharex=True)
 
-    ax_t.plot(hx, q_ctx[-tail:], color=C_QUERY, lw=1.3)
-    ax_t.plot(fx, q_true, color=C_TRUE, lw=2.0, label="ground truth")
-    for i in range(3):
-        ax_t.plot(
-            fx, restored3[i], lw=1.2, color=PALETTE[i + 1], alpha=0.9, label=f"restored NN #{i + 1}"
-        )
-    ax_t.axvline(0, color="k", lw=0.6, ls=":")
-    ax_t.set_title(
-        f"(a) Query + top-3 scale-restored candidates  (ETTm2 · {names[var]})", loc="left"
+    for a_ in (ax_t, ax_b):
+        a_.axvspan(-tail, 0, color=GRID, alpha=0.45, lw=0, zorder=0)
+        a_.plot(hx, q_ctx[-tail:], color=INK_MUTED, lw=1.0, zorder=2)
+        a_.axvline(0, color=RULE, lw=0.8, zorder=1)
+        a_.set_ylabel("normalized value")
+        _despine(a_)
+        a_.set_xlim(-tail, E.H + 30)
+
+    ax_t.fill_between(fx, lo, hi, color=C_BAND, lw=0, zorder=1)
+    ax_t.plot(fx, res_mean, color=C_OURS, lw=1.7, zorder=3)
+    ax_t.plot(fx, q_true, color=INK, lw=1.9, zorder=4)
+    _end_label(ax_t, fx[-1], q_true[-1], "ground truth", INK, dx=5)
+    _end_label(ax_t, fx[-1], res_mean[-1], "mean of $k$ restored", C_OURS, dx=5)
+    _end_label(ax_t, fx[len(fx) // 2], hi[len(fx) // 2], f"spread of all $k={k}$", C_OURS, dy=6)
+    _panel(ax_t, f"(a) Scale-restored retrieval envelope (ETTm2 · {names[var]}, $k={k}$)")
+
+    # the four forecasts converge by the horizon end, so end-labels would pile up:
+    # use a compact legend parked in the empty upper-left instead
+    ax_b.plot(
+        fx, chronos, color=C_RAW, lw=1.5, ls="--", zorder=3, label="Chronos-Bolt (target-only)"
     )
-    ax_t.set_ylabel("normalized value")
-    ax_t.legend(frameon=False, ncol=2, loc="upper left")
-
-    ax_b.plot(hx, q_ctx[-tail:], color=C_QUERY, lw=1.3)
-    ax_b.plot(fx, q_true, color=C_TRUE, lw=2.2, label="ground truth")
-    ax_b.plot(fx, chronos, color=C_BACKBONE, lw=1.7, ls="--", label="Chronos-Bolt (target-only)")
-    ax_b.plot(fx, tsrag, color=C_TSRAG, lw=1.4, ls=":", label="TS-RAG (official)")
-    ax_b.plot(fx, fused, color=C_SCALERAG, lw=1.7, label="ScaleRAG (restored fusion)")
-    ax_b.axvline(0, color="k", lw=0.6, ls=":")
-    ax_b.set_title("(b) Forecasts vs ground truth", loc="left")
+    ax_b.plot(fx, tsrag, color=C_TSRAG, lw=1.5, ls=":", zorder=3, label="TS-RAG (official)")
+    ax_b.plot(fx, fused, color=C_OURS, lw=1.7, zorder=3, label="ScaleRAG (restored fusion)")
+    ax_b.plot(fx, q_true, color=INK, lw=1.9, zorder=4, label="ground truth")
+    handles, labels_b = ax_b.get_legend_handles_labels()
+    ordering = [3, 0, 1, 2]  # ground truth first
+    ax_b.legend(
+        [handles[i] for i in ordering],
+        [labels_b[i] for i in ordering],
+        frameon=False,
+        loc="upper left",
+        ncol=2,
+        fontsize=8.5,
+        handlelength=1.8,
+        columnspacing=1.2,
+        borderaxespad=0.2,
+    )
+    # headroom so the legend block clears every curve instead of grazing the fusion line
+    lo_b, hi_b = ax_b.get_ylim()
+    ax_b.set_ylim(lo_b, hi_b + 0.42 * (hi_b - lo_b))
     ax_b.set_xlabel("step relative to forecast origin")
-    ax_b.set_ylabel("normalized value")
-    ax_b.legend(frameon=False, ncol=2, loc="upper left")
+    _panel(ax_b, "(b) Fused forecasts against ground truth")
 
-    fig.savefig(FIG / "fig4_qualitative.pdf")
+    fig.savefig(FIG / "fig3_qualitative.pdf")
     plt.close(fig)
 
 
-# ---- fig5: regimes ------------------------------------------------------------------
+# ---- fig4: regimes ------------------------------------------------------------------
 def _zero_fraction(parquet: Path) -> pl.DataFrame:
     return (
         pl.scan_parquet(parquet)
@@ -301,7 +407,7 @@ def _zero_fraction(parquet: Path) -> pl.DataFrame:
     )
 
 
-def fig5_regimes() -> None:
+def fig4_regimes() -> None:
     m5 = _zero_fraction(ROOT / "data/processed/dynamic.parquet")
     fav = _zero_fraction(ROOT / "data/processed/favorita/dynamic.parquet")
     m5_zf = m5["zf"]
@@ -309,54 +415,71 @@ def fig5_regimes() -> None:
     dev = json.loads((ROOT / "docs/scalerag-native-dev-results.json").read_text())
     ettm2_util = dev["test_mechanisms"]["C_vs_target"]["rel_mse_improvement"]
 
-    # (x=mean zero-fraction, y=utility over target-only TSFM, label, colour, marker)
+    # (x=mean zero-fraction, y=utility over target-only TSFM, label, is_slice, label offset)
     # utility sources: reports/scalerag-heldout-val-30490.json (M5 overall+slices),
     #                  reports/scalerag-favorita.json (Favorita), Phase-11A dev (ETTm2)
     pts = [
         (
             _pf(m5_zf.filter(m5_zf > 0.8).mean()),
             0.05630,
-            "M5 intermittent (z>0.8)",
-            PALETTE[0],
-            "o",
+            "M5 intermittent ($z>0.8$)",
+            True,
+            (-8, 4),
         ),
-        (_pf(m5_zf.mean()), 0.05076, "M5 overall", PALETTE[1], "s"),
-        (_pf(m5_zf.filter(m5_zf < 0.3).mean()), 0.00130, "M5 dense (z<0.3)", PALETTE[3], "^"),
-        (_pf(fav["zf"].mean()), 0.008306, "Favorita", PALETTE[2], "D"),
-        (ettm2_zf, ettm2_util, "ETTm2", PALETTE[4], "P"),
+        (_pf(m5_zf.mean()), 0.05076, "M5 overall", False, (-8, 6)),
+        (_pf(m5_zf.filter(m5_zf < 0.3).mean()), 0.00130, "M5 dense ($z<0.3$)", True, (8, 6)),
+        (_pf(fav["zf"].mean()), 0.008306, "Favorita", False, (8, 4)),
+        (ettm2_zf, ettm2_util, "ETTm2", False, (8, -2)),
     ]
-    fig, ax = plt.subplots(figsize=(7.2, 4.6))
-    xs = np.array([p[0] for p in pts])
-    ys = np.array([p[1] * 100 for p in pts])
-    # qualitative trend guide
-    o = np.argsort(xs)
-    ax.plot(xs[o], ys[o], color="#bbbbbb", lw=1.0, ls="--", zorder=1)
-    for x, y, lab, col, mk in pts:
+    fig, ax = plt.subplots(figsize=(6.6, 3.9))
+
+    ax.axhspan(-1.5, 0, color=C_RAW, alpha=0.06, lw=0, zorder=0)
+    ax.axhline(0, color=RULE, lw=1.0, zorder=2)
+    # NOTE: deliberately no trend line -- these are five different populations on two
+    # different metrics; a connecting curve would imply a fit that was never estimated.
+    for x, y, lab, is_slice, off in pts:
         ax.scatter(
-            x, y * 100, s=120, color=col, marker=mk, edgecolor="k", lw=0.6, zorder=3, label=lab
+            x,
+            y * 100,
+            s=64,
+            facecolor="white" if is_slice else C_OURS,
+            edgecolor=C_OURS,
+            lw=1.6,
+            zorder=4,
         )
-    ax.axhline(0, color="k", lw=0.8)
+        ax.annotate(
+            lab,
+            (x, y * 100),
+            textcoords="offset points",
+            xytext=off,
+            ha="right" if off[0] < 0 else "left",
+            fontsize=8.5,
+            color=INK_2,
+            zorder=5,
+        )
     ax.set_xlabel("intermittency  (mean fraction of zero observations)")
-    ax.set_ylabel("retrieval utility: % improvement over target-only TSFM")
-    ax.set_title(
-        "Retrieval augmentation helps only in sparse / scale-heterogeneous regimes", loc="left"
+    ax.set_ylabel("retrieval utility over\ntarget-only TSFM  (%)")
+    ax.set_xlim(-0.06, 1.0)
+    ax.set_ylim(-1.5, 6.6)
+    _despine(ax)
+    _end_label(ax, 0.97, -0.75, "retrieval hurts", C_RAW, dx=0, ha="right")
+    ax.scatter([], [], s=64, facecolor=C_OURS, edgecolor=C_OURS, lw=1.6, label="whole dataset")
+    ax.scatter([], [], s=64, facecolor="white", edgecolor=C_OURS, lw=1.6, label="M5 sub-slice")
+    ax.legend(frameon=False, loc="upper left", fontsize=8.5, handletextpad=0.4)
+    fig.text(
+        0.5,
+        -0.10,
+        "utility measured in RMSSE for M5 / Favorita (counts) and MSE for ETTm2 (continuous)",
+        ha="center",
+        fontsize=8,
+        color=INK_MUTED,
     )
-    ax.annotate(
-        "RMSSE: M5 / Favorita (counts)\nMSE: ETTm2 (continuous)",
-        xy=(0.98, 0.04),
-        xycoords="axes fraction",
-        ha="right",
-        va="bottom",
-        fontsize=8.5,
-        color="#555555",
-    )
-    ax.legend(frameon=False, loc="upper left")
-    fig.savefig(FIG / "fig5_regimes.pdf")
+    fig.savefig(FIG / "fig4_regimes.pdf")
     plt.close(fig)
 
 
-# ---- fig6: pareto -------------------------------------------------------------------
-def fig6_pareto() -> None:
+# ---- fig5: pareto -------------------------------------------------------------------
+def fig5_pareto() -> None:
     cb = json.loads((P11 / "compute_backbone.json").read_text())
     sc = json.loads((P11 / "compute_scalerag.json").read_text())
     grid = json.loads((P11 / "scalerag_native_ettm2_test.json").read_text())
@@ -371,63 +494,76 @@ def fig6_pareto() -> None:
         for r in grid["scalerag_restored_fixed_fusion"]
         if r["scale"] == "mean" and r["k"] == 20 and r["weight"] == 0.25
     )
+    ours = (back_ms + retr_ms, fused_mse)
     pts = [
-        (back_ms, chronos_mse, "Chronos-Bolt (target-only)", C_BACKBONE, "s"),
-        (tsrag_ms, tsrag_mse, "TS-RAG (official ARM)", C_TSRAG, "D"),
-        (back_ms + retr_ms, fused_mse, "ScaleRAG (restored fusion)", C_SCALERAG, "P"),
+        (back_ms, chronos_mse, "Chronos-Bolt\n(target-only)", C_RAW, (0, -20), "center"),
+        (tsrag_ms, tsrag_mse, "TS-RAG\n(official ARM)", C_TSRAG, (10, 0), "left"),
+        (ours[0], ours[1], "ScaleRAG\n(restored fusion)", C_OURS, (-10, 0), "right"),
     ]
-    fig, ax = plt.subplots(figsize=(7.4, 4.6))
-    for x, y, lab, col, mk in pts:
-        ax.scatter(x, y, s=150, color=col, marker=mk, edgecolor="k", lw=0.7, zorder=3, label=lab)
-    # annotate away from the top-right edge so the ScaleRAG label is not clipped
-    ax.annotate(
-        pts[0][2], (pts[0][0], pts[0][1]), textcoords="offset points", xytext=(9, 5), fontsize=9
+    fig, ax = plt.subplots(figsize=(6.6, 3.9))
+
+    # everything up-and-right of TS-RAG is both slower and less accurate than TS-RAG
+    ax.axhspan(tsrag_mse, 1, xmin=0, xmax=1, color=RULE, alpha=0.0, lw=0)
+    ax.add_patch(
+        plt.Rectangle(
+            (tsrag_ms, tsrag_mse),
+            10,
+            10,
+            color=C_RAW,
+            alpha=0.07,
+            lw=0,
+            zorder=0,
+        )
     )
+    for x, y, lab, col, off, ha in pts:
+        ax.scatter(x, y, s=78, color=col, edgecolor="white", lw=1.2, zorder=4)
+        ax.annotate(
+            lab,
+            (x, y),
+            textcoords="offset points",
+            xytext=off,
+            ha=ha,
+            va="center" if off[1] == 0 else "top",
+            fontsize=8.5,
+            color=col,
+            zorder=5,
+        )
+    ax.set_xlabel("inference latency  (ms / window, lower better)")
+    ax.set_ylabel("ETTm2 test MSE  (lower better)")
+    ax.set_xlim(back_ms - 0.13, ours[0] + 0.13)
+    ax.set_ylim(tsrag_mse - 0.0006, ours[1] + 0.0006)
+    _despine(ax)
     ax.annotate(
-        pts[1][2], (pts[1][0], pts[1][1]), textcoords="offset points", xytext=(9, 5), fontsize=9
-    )
-    ax.annotate(
-        pts[2][2],
-        (pts[2][0], pts[2][1]),
-        textcoords="offset points",
-        xytext=(-9, -16),
+        "dominated:\nslower and less accurate\nthan TS-RAG",
+        xy=(ours[0] - 0.02, tsrag_mse + 0.00045),
         ha="right",
-        fontsize=9,
+        va="bottom",
+        fontsize=8,
+        color=INK_MUTED,
+        zorder=5,
     )
-    # Pareto frontier (lower-left better) through the non-dominated points
-    front = sorted([(pts[0][0], pts[0][1]), (pts[1][0], pts[1][1])])
-    ax.plot(
-        [p[0] for p in front],
-        [p[1] for p in front],
-        color="#888888",
-        lw=1.2,
-        ls="--",
-        zorder=1,
-    )
-    # points are annotated directly, so a legend would only duplicate labels
     ax.annotate(
-        "Pareto frontier",
-        (front[0][0], (front[0][1] + front[1][1]) / 2),
-        textcoords="offset points",
-        xytext=(6, 0),
-        fontsize=8.5,
-        color="#666666",
+        "better",
+        xy=(0.035, 0.06),
+        xytext=(0.16, 0.06),
+        xycoords="axes fraction",
+        textcoords="axes fraction",
+        ha="left",
         va="center",
+        fontsize=8,
+        color=INK_MUTED,
+        arrowprops={"arrowstyle": "->", "color": INK_MUTED, "lw": 0.9},
     )
-    ax.set_xlabel("inference latency  (ms / window)")
-    ax.set_ylabel("test MSE  (lower better)")
-    ax.set_xlim(back_ms - 0.06, back_ms + retr_ms + 0.12)
-    ax.set_title("ScaleRAG is Pareto-dominated on ETTm2 (slower and less accurate)", loc="left")
-    fig.savefig(FIG / "fig6_pareto.pdf")
+    fig.savefig(FIG / "fig5_pareto.pdf")
     plt.close(fig)
 
 
-# ---- fig7: sensitivity --------------------------------------------------------------
+# ---- fig6: sensitivity --------------------------------------------------------------
 # M5 restored-retrieval RMSSE top-k sweep — source: docs/ablation-report.md
 M5_TOPK = {5: 0.7708, 10: 0.7511, 20: 0.7425}
 
 
-def fig7_sensitivity() -> None:
+def fig6_sensitivity() -> None:
     grid = json.loads((P11 / "scalerag_native_ettm2_test.json").read_text())
     ks = [5, 10, 20]
     restored = {
@@ -440,46 +576,39 @@ def fig7_sensitivity() -> None:
     }
     chronos = grid["chronos_bolt_target"]["mse"]
 
-    fig, ax_l = plt.subplots(figsize=(7.2, 4.6))
-    ax_l.plot(
-        ks,
-        [restored[k] for k in ks],
-        "-o",
-        color=C_SCALERAG,
-        lw=1.8,
-        label="ETTm2 restored retrieval",
-    )
-    ax_l.plot(
-        ks,
-        [fusion[k] for k in ks],
-        "-s",
-        color="#ff7f0e",
-        lw=1.8,
-        label="ETTm2 restored fusion (w=0.25)",
-    )
-    ax_l.axhline(chronos, color=C_BACKBONE, lw=1.4, ls="--", label="ETTm2 Chronos-Bolt target-only")
-    ax_l.set_xlabel("number of retrieved sequences $k$")
-    ax_l.set_ylabel("ETTm2 test MSE")
-    ax_l.set_xticks(ks)
-    ax_l.set_title("Larger $k$ improves retrieval but fusion stays above the backbone", loc="left")
+    # Three panels, one y-axis each. The three quantities differ by an order of
+    # magnitude and two of them are different metrics entirely, so they are shown as
+    # small multiples -- never as twin axes on one plot.
+    fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.6))
+    ax_a, ax_b, ax_c = axes
 
-    ax_r = ax_l.twinx()
-    ax_r.plot(
-        ks,
-        [M5_TOPK[k] for k in ks],
-        "-^",
-        color="#2ca02c",
-        lw=1.6,
-        label="M5 restored retrieval (RMSSE)",
-    )
-    ax_r.set_ylabel("M5 RMSSE", color="#2ca02c")
-    ax_r.tick_params(axis="y", labelcolor="#2ca02c")
-    ax_r.grid(visible=False)
+    ya = [restored[k] for k in ks]
+    ax_a.plot(ks, ya, "-o", color=C_OURS, lw=1.7, ms=5, mec="white", mew=1.0)
+    ax_a.set_ylabel("ETTm2 retrieval MSE")
+    _panel(ax_a, "(a) Retrieval quality")
+    _end_label(ax_a, ks[-1], ya[-1], f"{ya[-1]:.3f}", C_OURS, dx=-8, dy=0, ha="right")
 
-    lines = ax_l.get_lines() + ax_r.get_lines()
-    labels = [str(ln.get_label()) for ln in lines]
-    ax_l.legend(lines, labels, frameon=False, loc="center right", fontsize=9)
-    fig.savefig(FIG / "fig7_sensitivity.pdf")
+    yb = [fusion[k] for k in ks]
+    ax_b.plot(ks, yb, "-o", color=C_OURS, lw=1.7, ms=5, mec="white", mew=1.0)
+    ax_b.axhline(chronos, color=C_RAW, lw=1.4, ls="--", zorder=2)
+    ax_b.set_ylabel("ETTm2 fused MSE")
+    _panel(ax_b, "(b) End-to-end fusion")
+    _end_label(ax_b, ks[0], chronos, "target-only backbone", C_RAW, dx=0, dy=-12, ha="left")
+    _end_label(ax_b, ks[0], yb[0], "ScaleRAG", C_OURS, dx=5, dy=8, ha="left")
+    ax_b.set_ylim(chronos - 0.0018, max(yb) + 0.0022)
+
+    yc = [M5_TOPK[k] for k in ks]
+    ax_c.plot(ks, yc, "-o", color=C_OURS, lw=1.7, ms=5, mec="white", mew=1.0)
+    ax_c.set_ylabel("M5 retrieval RMSSE")
+    _panel(ax_c, "(c) M5 retrieval quality")
+    _end_label(ax_c, ks[-1], yc[-1], f"{yc[-1]:.4f}", C_OURS, dx=-8, dy=0, ha="right")
+
+    for a_ in axes:
+        a_.set_xticks(ks)
+        a_.set_xlabel("retrieved sequences $k$")
+        _despine(a_)
+    fig.subplots_adjust(wspace=0.55)
+    fig.savefig(FIG / "fig6_sensitivity.pdf")
     plt.close(fig)
 
 
@@ -487,11 +616,11 @@ def main() -> None:
     _style()
     FIG.mkdir(parents=True, exist_ok=True)
     fig1_motivation()
-    fig3_ablation()
-    fig4_qualitative()
-    fig5_regimes()
-    fig6_pareto()
-    fig7_sensitivity()
+    fig2_ablation()
+    fig3_qualitative()
+    fig4_regimes()
+    fig5_pareto()
+    fig6_sensitivity()
     print(f"wrote 6 figures to {FIG}")
     for f in sorted(FIG.glob("fig*.pdf")):
         print("  ", f.name, f"{f.stat().st_size / 1024:.0f} KB")
