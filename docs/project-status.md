@@ -232,6 +232,30 @@ outcome. Detail: `docs/gate-transfer-report.md`; code `scripts/gate_transfer_run
   the paired-bootstrap CIs over series are the real uncertainty estimate — but the
   seed-averaging must not be cited as dispersion.
 
+## Prior art and manuscript framing (2026-07-27)
+
+Verified against a 101-source literature corpus with the project's own documents
+excluded from every query, so no verdict is self-referential
+(`docs/literature-verification.md`).
+
+- **The restoration operation is not novel.** RAFT removes a level offset from the
+  query and from every retrieved patch and restores the query's offset; RAID
+  normalises a retrieved trajectory by its own mean and standard deviation and maps
+  it onto a target scale, predicting those statistics with a trained network because
+  it targets cold start; kNN-MTS augments a frozen forecaster with a zero-parameter
+  retrieval branch using the same convex blend. Each ingredient is published. The
+  composition is not, and that is what the manuscripts now claim.
+- **Both manuscripts were reframed** from a method proposal to a diagnosis. The
+  conference version is retitled "When Does Retrieval Help a Time Series Foundation
+  Model? Regime Boundaries and Failure Modes of Non-Neural Retrieval Augmentation",
+  and its contributions are the three diagnostics rather than the mechanism. Every
+  negative is retained.
+- **A false claim was removed.** "Retrieval utility tracks intermittency" appeared in
+  both the contribution list and the conclusion. It implies monotonicity and the
+  50-origin evidence contradicts it at the sparse extreme.
+- Journal version `paper/` is 11 pages, 25 references, anonymised author block.
+  Conference version is 6 pages, 25 references, double blind, and stays untracked.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
