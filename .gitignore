@@ -120,11 +120,17 @@ Thumbs.db
 external/
 
 # ---------------------------------------------------------------------------
+# Manuscript under anonymous review — keep local until 2026-11-01
+# ---------------------------------------------------------------------------
+# Rationale is in the folder's own local notes file, which is not tracked.
+submission/
+
+# ---------------------------------------------------------------------------
 # LaTeX build artifacts
 # ---------------------------------------------------------------------------
-# paper/ (Springer) and the second manuscript both build in place, so the intermediates
-# land next to the sources. main.log is already covered by the *.log rule above.
-# The compiled main.pdf of each manuscript IS tracked: it is the deliverable.
+# Both manuscript folders build in place, so the intermediates land next to the
+# sources. main.log is already covered by the *.log rule above. The compiled
+# main.pdf of the tracked manuscript IS committed: it is the deliverable.
 *.aux
 *.bbl
 *.blg

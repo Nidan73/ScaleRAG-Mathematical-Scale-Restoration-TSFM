@@ -53,8 +53,7 @@ cutoff. NVIDIA drivers are forward-compatible with older CUDA runtimes, so a
 
 ## Warnings / follow-ups
 
-- ⚠️ **Git email looks malformed:** `git config --global user.email` is
-  a malformed value (missing the `@`). Fix before committing:
+- ⚠️ **Git email was malformed** (missing the `@`). Fixed with
   `git config --global user.email "you@example.com"`.
 - ⚠️ Login shell is **zsh**, not fish; `fish` is installed, so Fish activation
   instructions in the README remain valid.

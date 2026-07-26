@@ -14,7 +14,7 @@ LightGBM data-leakage discovery and a nested-rolling correction (Section 2, "Att
 - *Committed artifacts* (docs, reports, 12-commit git log): no record; the log describes
   LightGBM as leakage-safe by construction.
 - *Session transcripts*: all four retained session logs
-  (`~/.claude/projects/<project>/*.jsonl`) were parsed and searched for
+  (the local session transcripts) were parsed and searched for
   `leakage`, `leaking/leaked`, `look-ahead`, `backward rolling`, `nested`, `walk-forward`,
   `refit-per-origin`, and LightGBM-adjacent leakage language. **No matching event was found.**
   Every hit was unrelated: the method-doc baseline listing, the retriever's own leakage

@@ -5,7 +5,7 @@ file-scoped rules in `.claude/rules/`.
 
 ## Repo identity (renamed 2026-07-24 — read this first)
 
-- **Local folder** is now `<project>` (was `<project>`).
+- **Local folder** is now `ScaleRAG-TS` (was `graphroute-ts`).
   Renamed via plain `mv`; git history and working tree carried over intact, nothing lost.
 - ✅ **RESOLVED 2026-07-26 — remote is correct and pushing works.** The GitHub repo is named
   **`ScaleRAG-Mathematical-Scale-Restoration-TSFM`** (not `ScaleRAG-TS` — that name was an
@@ -23,7 +23,7 @@ file-scoped rules in `.claude/rules/`.
   session start); *that* part does self-resolve on the next fresh session from the new path.
   **The venv did not.** `pip`/`uv` bake absolute paths into installed artifacts, and `mv`
   does not rewrite them, so 75 console scripts in `.venv/bin/` (pytest, ruff, mypy, jupyter…)
-  kept the shebang `#!<project>/.venv/bin/python`, the `activate*` scripts
+  kept a shebang pointing at the old `graphroute-ts/.venv/bin/python`, the `activate*` scripts
   kept the old `VIRTUAL_ENV`, and the editable-install pointers
   (`_editable_impl_graphroute_ts.pth`, `direct_url.json`) still pointed at the old `src/`.
   Symptom was a confusing `FileNotFoundError: .../.venv/bin/pytest` on a file that exists
@@ -98,9 +98,10 @@ graph-routing negative is a secondary empirical contribution.
 - **Favorita** → `data/processed/favorita/{entities,dynamic}.parquet` (5,000-series
   streamed subset, 1,000 days, richer metadata: family/class/perishable/type/
   cluster/city/state). Raw in `data/raw/favorita/` (train.csv ~5 GB, gitignored).
-- Kaggle downloads gated behind rules-acceptance; the browser "Download All" +
-  drop-into-`data/raw/` path is the reliable workaround (token lists but 403s on
-  Kaggle credentials are read from the environment (see `.env.example`) and are never committed or echoed.
+- Kaggle downloads are gated behind rules-acceptance; the API can list a competition
+  but returns 403 on bulk download, so the reliable path is the browser "Download All"
+  followed by dropping the archive into `data/raw/`. Kaggle credentials are read from
+  the environment (see `.env.example`) and are never committed or echoed.
 
 ## Architecture (`src/graphroute_ts/`)
 

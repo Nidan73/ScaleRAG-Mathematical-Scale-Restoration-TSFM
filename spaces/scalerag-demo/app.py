@@ -25,9 +25,11 @@ matplotlib.use("Agg")  # headless rendering (set before any figure is drawn)
 HERE = Path(__file__).resolve().parent
 EXAMPLE_CSV = HERE / "examples" / "synthetic_retail.csv"
 
-# --- fill these in with your public links ---
-REPO_URL = "https://github.com/Nidan73/ScaleRAG-Mathematical-Scale-Restoration-TSFM"  # code repository
-PAPER_URL = "https://github.com/Nidan73/ScaleRAG-Mathematical-Scale-Restoration-TSFM/blob/main/docs/paper-outline.md"
+REPO_URL = "https://github.com/Nidan73/ScaleRAG-Mathematical-Scale-Restoration-TSFM"
+PAPER_URL = (
+    "https://github.com/Nidan73/ScaleRAG-Mathematical-Scale-Restoration-TSFM"
+    "/blob/main/docs/paper-outline.md"
+)
 
 MODEL_NAME = "amazon/chronos-2"
 MAX_SERIES = 200  # keep the demo lightweight
