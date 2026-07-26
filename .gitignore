@@ -118,3 +118,25 @@ Thumbs.db
 
 # Phase 11A: isolated TS-RAG clone, assets, venv (never commit)
 external/
+
+# ---------------------------------------------------------------------------
+# LaTeX build artifacts
+# ---------------------------------------------------------------------------
+# paper/ (Springer) and the second manuscript both build in place, so the intermediates
+# land next to the sources. main.log is already covered by the *.log rule above.
+# The compiled main.pdf of each manuscript IS tracked: it is the deliverable.
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
+*.bcf
+*.run.xml
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.dvi
+*.spl
+texput.*

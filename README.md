@@ -17,9 +17,26 @@ controlled negative result.
 > `docs/project-status.md`, `docs/scalerag-native-dev-report.md`,
 > `ScaleRAG_Final_Audit_Report.md`, and the research rules in `CLAUDE.md`.
 >
-> **Note:** this project's folder and GitHub remote were renamed to `ScaleRAG-TS`
-> (2026-07-24); the GitHub repository itself may still need renaming to match — see
-> `CLAUDE.md` → "Repo identity" before pushing.
+> **Note:** the local folder was renamed to `ScaleRAG-TS` (2026-07-24) and the GitHub
+> repository is `ScaleRAG-Mathematical-Scale-Restoration-TSFM`. The remote points there
+> and pushing is verified, see `CLAUDE.md` → "Repo identity". The Python package is
+> still `graphroute_ts` on purpose.
+
+## Manuscript
+
+The [`paper/`](paper/) folder holds the full write-up of the study as a Springer
+*Applied Intelligence* submission: `main.tex`, `references.bib`, six figures, and the
+compiled 10-page `main.pdf`. It is self-contained and ships its own `svjour3.cls`,
+`svglov3.clo` and `spmpsci.bst`, because Springer distributes that class only inside its
+own author template rather than through CTAN or Overleaf. Upload the folder to Overleaf
+as-is, or build it with:
+
+```bash
+cd paper && pdflatex main && bibtex main && pdflatex main && pdflatex main
+```
+
+See `paper/README.md` for the build verification, the figure-sizing rules, and one known
+issue with the architecture diagram.
 
 ## Requirements
 

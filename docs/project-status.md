@@ -108,6 +108,11 @@ ETTm2** as development data.
     fused error is nearest the median; `fig1`'s selection criteria are unchanged from the
     original. Every value still traces to a locked artifact.
 
+  - `paper/svjour3.cls`, `paper/svglov3.clo`, `paper/spmpsci.bst` — the Springer class and
+    bib style, vendored because they ship with neither TeX Live nor Overleaf.
+  - `paper/main.pdf` — the compiled 10-page manuscript; `paper/README.md` records the build
+    command, the verification counts, and the class provenance.
+
   Supersedes the former `manuscript/` (5 section files) and `latex_assets/` (3 table files),
   both removed in the same commit — their content is preserved verbatim inside `main.tex`,
   including the `table` → `table*` fix so the tables span the two-column spread. No numbers
@@ -133,8 +138,16 @@ ETTm2** as development data.
 
 - ~~Rename the GitHub repository~~ — **done 2026-07-26**; remote points at
   `ScaleRAG-Mathematical-Scale-Restoration-TSFM` and pushing is verified.
-- Obtain `svjour3.cls` + `spmpsci.bst` (Springer template) — not installed locally, so the
-  manuscript has only been verified against a shim class. Re-verify on Overleaf.
+- ~~Obtain `svjour3.cls` + `spmpsci.bst`~~ — **done 2026-07-26.** The real Springer class
+  (v3.2), `svglov3.clo`, and `spmpsci.bst` are now vendored in `paper/` (provenance in
+  `paper/README.md`); they are in neither TeX Live nor Overleaf's default tree, which is
+  what caused the `File 'svjour3.cls' not found` failure. `paper/main.pdf` is a real local
+  build: **10 pages, 0 overfull hbox/vbox, 0 undefined refs, 0 undefined citations,
+  0 LaTeX warnings, 0 BibTeX warnings, 22/22 entries.**
+- **`figures/architecture.pdf` is illegible at print size** — 1248 × 634 pt scaled to
+  `\textwidth` is a factor of 0.39, putting its labels at ~3.2–3.9 pt. Needs
+  `architecture.drawio` re-laid-out to roughly 4:3 with larger node fonts, then re-exported.
+  Rescaling the existing PDF cannot fix it; the problem is aspect ratio, not resolution.
 - Draft the remaining paper sections around the frozen tables/figures/audit report.
 - Phase 11B stays **blocked** unless the Phase-11A gate result changes — do not open the
   four final datasets to "rescue" the result (rules 2, 9, 12).

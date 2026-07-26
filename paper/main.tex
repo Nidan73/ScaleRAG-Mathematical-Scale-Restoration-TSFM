@@ -4,16 +4,20 @@
 %  for Time Series Foundation Models
 %
 %  Self-contained single-file manuscript. Everything the paper needs lives in
-%  this folder:
+%  this folder -- including the Springer class, which is NOT part of TeX Live
+%  or of Overleaf's default TeX tree and must travel with the project:
 %      main.tex        this file (preamble, all sections, all tables)
 %      references.bib  22 entries
-%      figures/        fig1_motivation.pdf ... fig6_sensitivity.pdf
+%      figures/        architecture.pdf, fig1_motivation.pdf ... fig6_sensitivity.pdf
+%      svjour3.cls     Springer journal class v3.2   } see README.md
+%      svglov3.clo     its default layout option     } for provenance
+%      spmpsci.bst     Springer maths/CS bib style   }
 %
 %  Build:  pdflatex main -> bibtex main -> pdflatex main -> pdflatex main
 %
-%  Requires svjour3.cls and spmpsci.bst from the Springer Nature LaTeX
-%  template (present by default on Overleaf's Springer template; not shipped
-%  here). Tables that span both columns use table*, as the class is twocolumn.
+%  The class is twocolumn (~235pt columns), so every table and every
+%  information-dense figure uses the starred float (table* / figure*) to span
+%  the full spread; at \columnwidth their internal labels rendered at ~5pt.
 %
 %  All reported numbers trace to the locked experiment artifacts; per-table
 %  provenance is recorded in the comment block above each table.
@@ -28,6 +32,17 @@
 \usepackage{hyperref}
 \usepackage{cite}
 \usepackage{url}
+\usepackage{microtype}                      % protrusion + expansion
+
+% Typography only -- no effect on content. The svjour3 column is ~235pt, which
+% is narrow enough that several long compound terms overflowed it. Letting TeX
+% loosen a line by up to 1em rather than push ink into the margin, plus the
+% hyphenation exceptions below, takes the manuscript to 0 overfull hboxes
+% (worst remaining underfull badness 1184, i.e. a barely-loose line).
+\emergencystretch=1em
+\hyphenation{Chro-nos Scale-RAG TS-RAG Light-GBM near-est-neigh-bour
+  re-triev-al aug-men-ta-tion nor-mal-iza-tion res-to-ra-tion
+  in-ter-mit-ten-cy zero-in-flat-ed hi-er-arch-i-cal Sea-son-al-Naive}
 
 \journalname{Applied Intelligence}
 
@@ -229,9 +244,9 @@ This mechanism transfers universally across modalities. On the dense ETTm2 bench
   \label{fig:ablation}
 \end{figure*}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig3_qualitative.pdf}
+  \includegraphics[width=\textwidth]{figures/fig3_qualitative.pdf}
   \caption{A \emph{representative} window on the ETTm2 OT channel (mean scaling, $k=20$),
     chosen as the window whose fused error is closest to the median among windows with a
     non-trivial future---typical behaviour, not a best case. (a) The envelope spans all
@@ -242,7 +257,7 @@ This mechanism transfers universally across modalities. On the dense ETTm2 bench
     how a genuine retrieval-quality gain can fail to convert into an end-to-end gain on a
     dense continuous channel.}
   \label{fig:qualitative}
-\end{figure}
+\end{figure*}
 
 \subsection{Regime Taxonomy and Boundary Conditions}
 \label{sec:regimes}
@@ -287,15 +302,15 @@ Conversely, on the continuous ETTm2 benchmark, the neural target-only backbone (
   \end{tabular}
 \end{table*}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig4_regimes.pdf}
+  \includegraphics[width=\textwidth]{figures/fig4_regimes.pdf}
   \caption{Taxonomy of retrieval regimes. Realised utility of retrieval augmentation over
     the target-only foundation model, plotted against dataset zero-fraction (M5 and
     Favorita in RMSSE, ETTm2 in MSE). Retrieval augmentation pays off in sparse,
     scale-heterogeneous regimes and is neutral-to-harmful on dense continuous channels.}
   \label{fig:regimes}
-\end{figure}
+\end{figure*}
 
 \subsection{Held-Out M5 Evaluation: Pre-Registered Criteria and Negative Findings}
 \label{sec:m5-caveats}
@@ -363,19 +378,19 @@ Table~\ref{tab:compute} gives the full accounting and Fig.~\ref{fig:pareto} plot
    storage reference, not a like-for-like index-size comparison.}
 \end{table*}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig5_pareto.pdf}
+  \includegraphics[width=\textwidth]{figures/fig5_pareto.pdf}
   \caption{Accuracy versus latency per window on ETTm2. ScaleRAG is Pareto-dominated in
     this regime: the official TS-RAG adapter is both faster end-to-end and more accurate.
     The efficiency argument for ScaleRAG rests on trainable-parameter count and
     deployability, not on wall-clock latency.}
   \label{fig:pareto}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=\columnwidth]{figures/fig6_sensitivity.pdf}
+  \includegraphics[width=\textwidth]{figures/fig6_sensitivity.pdf}
   \caption{Sensitivity to the neighbour budget $k$ (mean scaling, fusion weight $0.25$),
     shown as three small multiples because the three quantities differ in scale and two of
     them are different metrics---never as a twin axis. Retrieval quality improves
@@ -383,7 +398,7 @@ Table~\ref{tab:compute} gives the full accounting and Fig.~\ref{fig:pareto} plot
     (b), but stays above the target-only backbone (dashed) at every $k$. The negative
     end-to-end result is therefore not an artefact of the frozen $k=20$ choice.}
   \label{fig:sensitivity}
-\end{figure}
+\end{figure*}
 
 Therefore, explicit statistical restoration is not proposed as a substitute for neural RAG on dense benchmarks, but rather as an operational option for sparse datasets and resource-constrained environments where neural adapters risk scale hallucination, cannot be pretrained, or are impossible to deploy.
 
