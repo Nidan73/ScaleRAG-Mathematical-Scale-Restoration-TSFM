@@ -124,6 +124,114 @@ ETTm2** as development data.
   "GPU-accelerated FAISS" — and a dedicated subsection reports all held-out M5 negatives
   (0/3 criteria, WRMSSE loss, +0.69% over LightGBM, coverage regression).
 
+## Controlled synthetic affine probe (2026-07-26)
+
+Causal validation of the scale-restoration mechanism against the "this is just
+denormalization" critique, using **synthetic data only** — no M5/Favorita split is
+touched and no Phase-11B dataset is opened. A query is built as an exact affine
+image `x' = a·x + b` of a known donor motif, so retrieval and reconstruction can be
+scored separately. 5 seeds, paired bootstrap CIs. Full detail:
+`docs/affine-probe-report.md`; code `src/graphroute_ts/affine_probe.py` +
+`scripts/affine_probe_run.py`.
+
+- **Retrieval invariance:** raw-space top-1 hit rate collapses from 1.000 (control)
+  to 0.176 (chance 0.083) under transform; normalised retrieval stays at 1.000.
+  Δ = **+0.744**, CI95 [+0.702, +0.784].
+- **Invariance alone is insufficient:** normalised retrieval without restoration
+  finds the correct motif every time yet forecasts no better than the series mean
+  (nmse 0.75→1.87). Restoration Δnmse = **−1.508**, CI95 [−1.71, −1.272].
+- **Restoration is exactly affine-equivariant:** `znorm+restore` error is constant to
+  **8.7 × 10⁻¹⁹** across the whole (a, b) grid; the residual is the noise floor.
+- **Limitation found, reported not fixed (rules 9, 12):** the frozen config uses
+  `scale="mean"`, which is *exactly scale*-equivariant but has **no location term**.
+  Under an offset its nmse degrades 291× (0.00067 → 0.195) and hit rate falls to
+  0.580. Not acted on — changing the frozen scale after seeing results would be
+  test-driven tuning, and the M5 test split is consumed.
+- Makes **no** end-to-end accuracy claim; the recorded negatives stand unchanged.
+
+## Retrieval-to-forecasting gap explained (2026-07-26)
+
+Post-hoc attribution of the **already-stored** Phase-11A ETTm2 forecasts — no model
+run, no dataset opened, no config selected. Answers why +85.4% retrieval MSE does
+not become an end-to-end gain. Detail: `docs/retrieval-forecasting-gap.md`; code
+`src/graphroute_ts/error_decomposition.py` + `scripts/error_decomposition_run.py`.
+
+The shape floor is the least-squares affine correction of the retrieved mean onto
+the realised future — the minimiser over all affine maps, so a true lower bound.
+
+- **The analogues are excellent.** Shape floor **0.0647** vs backbone **0.1486** on
+  ETTm2 test: optimally rescaled, retrieval would be **2.3× better than
+  Chronos-Bolt** (1.96× on val). Retrieval finds better futures than the TSFM.
+- **The magnitude correction is the bottleneck.** Restoration removes 2.56 of 2.93
+  MSE (87%), but the remaining **0.373 is 5.8× the shape floor and 2.5× the
+  backbone's total error**. Only **14.8%** of the restored retrieval's error is
+  shape; 85.2% is unrecovered magnitude.
+- **Hence the gap.** The retrieval branch arrives at fusion 2.95× worse than the
+  backbone, so any real weight hurts: optimal weight 0.118 vs frozen 0.25, and the
+  shipped blend is significantly worse than the backbone (+0.0013, CI [+0.0005,
+  +0.0021]). Same pattern on val (0.057 vs 0.25; +0.0050).
+- **Mechanism:** `scale="mean"` has no location term (see the affine probe above),
+  and ETTm2 is train-normalised hence zero-centred — where a mean denominator is
+  both degenerate and unable to express the shift.
+- **Not acted on.** The implied fix (`znorm`) is not tested: no `znorm` variant is
+  stored, and selecting a scale strategy after seeing test attribution is
+  test-driven tuning (rules 9, 12). Needs fresh pre-registration. The optimal
+  fusion weight is likewise diagnostic only. No recorded negative changes.
+
+## Retrieval-utility regime band (2026-07-26)
+
+Estimates where retrieval stops paying, on the M5 **validation** split only (the
+consumed test split is untouched, and the script refuses to run if the eval origin
+reaches it). Nothing is selected or tuned; frozen retrieval is imported from
+`scripts/scalerag_eval.py`. Detail: `docs/regime-threshold-report.md`; code
+`src/graphroute_ts/regime.py` + `scripts/regime_threshold_run.py`.
+
+- **The relationship is NOT monotone — this corrects a current paper claim.**
+  "Retrieval utility tracks intermittency" implies monotonicity; the win rate is an
+  inverted U, rising from 0.19 (dense, ΔU −0.103) to 0.84 at zero-fraction 0.62–0.71,
+  then falling back to **0.50 at 0.93–1.00 (ΔU −0.073)**. Retrieval fails at *both*
+  extremes: dense series need no help, near-empty series offer no matchable signal.
+- **Band, not threshold.** Intermittency band **[0.359, 0.964]**, win rate **0.74
+  inside vs 0.34 outside**. Retrieval beats Chronos-2 on 62.3% of series overall
+  (mean ΔU +0.0115 RMSSE). All six diagnostics are bounded above.
+- **The six gate features are nearly one feature.** Intermittency ↔ log_volume
+  **−0.97**, log_volume ↔ chronos_uncertainty **+0.94**, nn_dist ↔ scale_spread
+  **+0.85**. One latent demand-level axis drives all of them, so the frozen LightGBM
+  gate has ~1–2 effective dimensions, not 6 — a plausible reason it beats fixed
+  fusion by only ~1.1%.
+- `retr_nn_dist` has the strongest marginal correlation (+0.287) but its sign is
+  confounded, not meaningful: it correlates 0.65 with intermittency and 0.85 with
+  scale-spread, so it proxies sparsity. Do not read it as "distant neighbours help".
+- **Caveat:** isotonic crossings have cube-root asymptotics and the naive bootstrap
+  is inconsistent for them, so the reported intervals are indicative, not calibrated.
+  Point estimates are the result. One origin, one 1,000-series subset.
+
+## Cross-dataset gate transfer (2026-07-26)
+
+Fills a cell the project had never tested and that this literature treats as table
+stakes (TS-RAG trains its ARM on a multi-domain corpus and applies it zero-shot).
+Validation windows only; consumed M5 test split untouched; nothing selected from the
+outcome. Detail: `docs/gate-transfer-report.md`; code `scripts/gate_transfer_run.py`.
+
+- **The gate transfers, asymmetrically.** Favorita→M5 is free: −0.13%, CI [−0.39,
+  +0.12], **includes 0**. M5→Favorita costs **−1.27%**, CI [−2.01, −0.61], excludes 0.
+  Both directions still beat untrained `fixed_0.5` fusion (+0.95% / +0.65%).
+- Plausible reading: an M5-trained gate learns to *trust* retrieval, which is
+  expensive on Favorita where retrieval is a liability; a Favorita-trained gate is
+  already sceptical, which is merely suboptimal on M5.
+- **On Favorita retrieval is a net liability and only the gate rescues it.**
+  `retrieval_only` 0.67055 and `fixed_0.5` 0.62342 are both *worse* than
+  `chronos_only` 0.61689; only `gate_in_domain` 0.61162 gets below it. On dense data
+  the gate's job is suppressing a harmful signal, not blending two useful ones.
+- **Incidental, and it touches recorded results: the "3 gate seeds" carry zero
+  dispersion.** Seed SD is exactly 0.0 everywhere. The frozen gate has
+  `subsample=1.0` / `colsample_bytree=1.0`, so it is deterministic and `random_state`
+  is inert (verified directly: seeds 42/43/44 give bit-identical predictions). Phase
+  9/10 "averaged over 3 gate seeds" is an average of three identical numbers and is
+  **not** evidence of robustness to gate initialisation. No recorded number changes —
+  the paired-bootstrap CIs over series are the real uncertainty estimate — but the
+  seed-averaging must not be cited as dispersion.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
