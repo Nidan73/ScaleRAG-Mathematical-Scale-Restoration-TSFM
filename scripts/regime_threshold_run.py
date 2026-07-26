@@ -60,6 +60,18 @@ def main() -> int:
     ap.add_argument("--subset", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument(
+        "--origins",
+        type=int,
+        default=1,
+        help="number of forecast origins, stepping back from the validation origin",
+    )
+    ap.add_argument(
+        "--stride",
+        type=int,
+        default=28,
+        help="days between origins; the default equals H so windows do not overlap",
+    )
     args = ap.parse_args()
 
     set_seed(args.seed)
@@ -82,20 +94,41 @@ def main() -> int:
             f"(starts {test_start}). See {LOCK.name}."
         )
 
-    fc = Chronos2Forecaster()
-    queries = [sales[i, o_eval - SE.L : o_eval] for i in range(n)]
-    c_pt, c_q = fc.forecast([sales[i, :o_eval] for i in range(n)], SE.H, SE.QL)
-    c_pt = np.clip(c_pt, 0.0, None)
-    r_pt, _r_q, nnd, dis = SE.retrieval_all(sales, entities, o_eval, queries, scale="mean")
+    # Origins step back from validation so every evaluation window closes at or
+    # before the consumed test boundary. Stride defaults to H, so the windows are
+    # non-overlapping and each origin is an independent temporal sample.
+    origins = [o_eval - i * args.stride for i in range(args.origins)]
+    if min(origins) - SE.L < 0:
+        raise SystemExit(f"origin {min(origins)} has no room for a length-{SE.L} context")
+    if max(o + SE.H for o in origins) > test_start:
+        raise SystemExit("refusing to run: an evaluation window reaches the consumed test split")
 
-    # Utility is positive where retrieval beat the frozen backbone on that series.
-    rmsse_c = SE.rmsse_series(c_pt, sales, o_eval)
-    rmsse_r = SE.rmsse_series(r_pt, sales, o_eval)
-    finite = np.isfinite(rmsse_c) & np.isfinite(rmsse_r)
-    if not finite.all():
-        print(f"dropping {int((~finite).sum())} series with a non-finite RMSSE (flat history)")
-    utility = (rmsse_c - rmsse_r)[finite]
-    feats = SE.gate_features(sales, o_eval, nnd, dis, c_q)[finite]
+    fc = Chronos2Forecaster()
+    per_origin: list[dict[str, np.ndarray]] = []
+    for oi in origins:
+        queries = [sales[i, oi - SE.L : oi] for i in range(n)]
+        c_pt, c_q = fc.forecast([sales[i, :oi] for i in range(n)], SE.H, SE.QL)
+        c_pt = np.clip(c_pt, 0.0, None)
+        r_pt, _r_q, nnd, dis = SE.retrieval_all(sales, entities, oi, queries, scale="mean")
+        rmsse_c = SE.rmsse_series(c_pt, sales, oi)
+        rmsse_r = SE.rmsse_series(r_pt, sales, oi)
+        finite = np.isfinite(rmsse_c) & np.isfinite(rmsse_r)
+        per_origin.append(
+            {
+                "origin": oi,
+                "utility": (rmsse_c - rmsse_r)[finite],
+                "feats": SE.gate_features(sales, oi, nnd, dis, c_q)[finite],
+            }
+        )
+        print(
+            f"  origin {oi}: {int(finite.sum())} series, "
+            f"win rate {float((per_origin[-1]['utility'] > 0).mean()):.3f}"
+        )
+
+    # The primary (single-origin) analysis stays anchored at the validation origin
+    # so it remains comparable with the earlier run.
+    utility = per_origin[0]["utility"]
+    feats = per_origin[0]["feats"]
 
     corr = utility_correlates(utility, feats, FEATURES)
     thresholds = {
@@ -146,8 +179,69 @@ def main() -> int:
             }
         )
 
+    # Fixed zero-fraction bins, identical across origins, so a bin means the same
+    # thing everywhere and win rates can be averaged. Quantile deciles would move
+    # with each origin's own distribution and could not be pooled.
+    edges = np.round(np.arange(0.0, 1.01, 0.1), 2)
+    inter_idx = FEATURES.index("intermittency")
+    bins: list[dict[str, object]] = []
+    for lo, hi in pairwise(edges):
+        rates, utils, counts = [], [], []
+        for rec in per_origin:
+            f = rec["feats"][:, inter_idx]
+            m = (f >= lo) & (f < hi if hi < 1.0 else f <= hi)
+            # Keep thin strata rather than dropping them. Dropping would silently
+            # remove exactly the extreme-sparsity bins the non-monotonicity claim
+            # rests on; a noisy bin should instead show up as a wide interval.
+            if m.sum() == 0:
+                continue
+            rates.append(float((rec["utility"][m] > 0).mean()))
+            utils.append(float(rec["utility"][m].mean()))
+            counts.append(int(m.sum()))
+        if not rates:
+            continue
+        k = len(rates)
+        bins.append(
+            {
+                "lo": float(lo),
+                "hi": float(hi),
+                "n_origins": k,
+                "mean_series_per_origin": float(np.mean(counts)),
+                "min_series_at_any_origin": int(np.min(counts)),
+                "win_rate_mean": float(np.mean(rates)),
+                "win_rate_sem": float(np.std(rates, ddof=1) / np.sqrt(k))
+                if k > 1
+                else float("nan"),
+                "mean_utility": float(np.mean(utils)),
+                "mean_utility_sem": float(np.std(utils, ddof=1) / np.sqrt(k))
+                if k > 1
+                else float("nan"),
+            }
+        )
+
+    # Band edges refitted per origin, so their spread is a temporal sampling spread.
+    band_lo, band_hi = [], []
+    for rec in per_origin:
+        bd = estimate_band(rec["utility"], rec["feats"][:, inter_idx], "intermittency", n_boot=0)
+        if bd.lower is not None:
+            band_lo.append(bd.lower)
+        if bd.upper is not None:
+            band_hi.append(bd.upper)
+
     payload = {
         "experiment": "retrieval-utility-regime-threshold",
+        "n_origins": len(origins),
+        "origins": origins,
+        "stride": args.stride,
+        "fixed_bin_profile_across_origins": bins,
+        "band_across_origins": {
+            "lower_mean": float(np.mean(band_lo)) if band_lo else None,
+            "lower_sd": float(np.std(band_lo, ddof=1)) if len(band_lo) > 1 else None,
+            "upper_mean": float(np.mean(band_hi)) if band_hi else None,
+            "upper_sd": float(np.std(band_hi, ddof=1)) if len(band_hi) > 1 else None,
+            "n_origins_with_lower": len(band_lo),
+            "n_origins_with_upper": len(band_hi),
+        },
         "dataset": "M5",
         "split": "validation (d_1886-d_1913)",
         "guard": "test split d_1914-d_1941 is consumed and untouched (rule 2)",
@@ -176,7 +270,8 @@ def main() -> int:
     }
 
     OUT.mkdir(parents=True, exist_ok=True)
-    path = OUT / f"m5-val-regime-threshold-{args.subset}.json"
+    suffix = f"{args.subset}" + (f"-{len(origins)}origins" if len(origins) > 1 else "")
+    path = OUT / f"m5-val-regime-threshold-{suffix}.json"
     path.write_text(json.dumps(payload, indent=2))
 
     print(
@@ -203,6 +298,26 @@ def main() -> int:
     for d in deciles:
         band = f"{d['intermittency_lo']:.2f}-{d['intermittency_hi']:.2f}"
         print(f"{band:>24s}  {d['n']:5d}  {d['win_rate']:9.2f}  {d['mean_utility']:+9.4f}")
+    if len(origins) > 1:
+        print(f"\n{'zero fraction':>16s} {'origins':>8s} {'win rate':>16s} {'mean dU':>16s}")
+        for b in bins:
+            print(
+                f"{b['lo']:.1f}-{b['hi']:.1f}".rjust(16)
+                + f" {b['n_origins']:8d}"
+                + f" {b['win_rate_mean']:9.3f}+-{b['win_rate_sem']:<5.3f}"
+                + f" {b['mean_utility']:+9.4f}+-{b['mean_utility_sem']:<5.4f}"
+            )
+        ba = payload["band_across_origins"]
+        if ba["lower_mean"] is not None:
+            print(
+                f"\nband lower {ba['lower_mean']:.3f} +- {ba['lower_sd']:.3f} "
+                f"({ba['n_origins_with_lower']}/{len(origins)} origins)"
+            )
+        if ba["upper_mean"] is not None:
+            print(
+                f"band upper {ba['upper_mean']:.3f} +- {ba['upper_sd']:.3f} "
+                f"({ba['n_origins_with_upper']}/{len(origins)} origins)"
+            )
     print(f"\nwrote {path.relative_to(REPO)}")
     return 0
 

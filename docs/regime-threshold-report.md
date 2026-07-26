@@ -30,6 +30,49 @@ from `scripts/scalerag_eval.py` rather than re-derived. 1,000 series, 34.7 s.
 - Code: `src/graphroute_ts/regime.py`, `scripts/regime_threshold_run.py`
 - Results: `reports/regime-threshold/m5-val-regime-threshold-1000.json`
 
+
+## Hardened across 50 forecast origins (2026-07-27)
+
+The single-origin estimate below invited an obvious dismissal: that the shape was
+a property of one timestamp rather than of sparsity. It is not. Re-run over **50
+non-overlapping origins** (stride = H = 28, spanning `d_513`–`d_1885`, all
+evaluation windows closing at or before the consumed test boundary), the inverted
+U reproduces at every origin.
+
+Bins are **fixed absolute intervals**, not quantile deciles, so a bin denotes the
+same thing at every origin and the origins can be pooled. Quantile bins would
+shift meaning as panel sparsity drifts, which is the "shifting sands" objection;
+fixed bins risk thin strata instead, so no non-empty bin is dropped and the
+minimum bin held ~52 series at any origin.
+
+| Zero fraction | Win rate (mean ± SEM over 50 origins) | Mean ΔU |
+|---|---|---|
+| 0.0–0.1 | 0.220 ± 0.009 | -0.1049 ± 0.0038 |
+| 0.1–0.2 | 0.341 ± 0.011 | -0.0322 ± 0.0029 |
+| 0.2–0.3 | 0.406 ± 0.009 | -0.0191 ± 0.0025 |
+| 0.3–0.4 | 0.514 ± 0.008 | -0.0014 ± 0.0023 |
+| 0.4–0.5 | 0.636 ± 0.009 | +0.0302 ± 0.0028 |
+| 0.5–0.6 | 0.764 ± 0.006 | +0.0577 ± 0.0026 |
+| 0.6–0.7 | 0.794 ± 0.006 | +0.0583 ± 0.0026 |
+| 0.7–0.8 | 0.770 ± 0.006 | +0.0408 ± 0.0019 |
+| 0.8–0.9 | 0.700 ± 0.005 | +0.0112 ± 0.0018 |
+| 0.9–1.0 | 0.472 ± 0.007 | -0.0956 ± 0.0036 |
+
+**The non-monotonicity is statistically separated.** The peak
+(0.6–0.7) has a 95% lower bound of
+0.782, strictly above the 95%
+upper bounds of both the densest bin (0.237)
+and the sparsest (0.485).
+
+**Band, refit per origin:** lower 0.327 ± 0.055
+(found at 50/50 origins), upper 0.949 ±
+0.021 (48/50). Runtime 465s.
+
+The single-origin decile numbers below are superseded and retained only as the
+record of the first pass. The paper reports the fixed-bin, 50-origin version and
+does not report both, since presenting two stratifications of one profile invites
+the charge of choosing the more favourable.
+
 ## Headline: the relationship is not monotone
 
 Retrieval beats Chronos-2 on **62.3%** of series overall (mean ΔU = +0.0115 RMSSE).
