@@ -124,6 +124,31 @@ ETTm2** as development data.
   "GPU-accelerated FAISS" — and a dedicated subsection reports all held-out M5 negatives
   (0/3 criteria, WRMSSE loss, +0.69% over LightGBM, coverage regression).
 
+## Controlled synthetic affine probe (2026-07-26)
+
+Causal validation of the scale-restoration mechanism against the "this is just
+denormalization" critique, using **synthetic data only** — no M5/Favorita split is
+touched and no Phase-11B dataset is opened. A query is built as an exact affine
+image `x' = a·x + b` of a known donor motif, so retrieval and reconstruction can be
+scored separately. 5 seeds, paired bootstrap CIs. Full detail:
+`docs/affine-probe-report.md`; code `src/graphroute_ts/affine_probe.py` +
+`scripts/affine_probe_run.py`.
+
+- **Retrieval invariance:** raw-space top-1 hit rate collapses from 1.000 (control)
+  to 0.176 (chance 0.083) under transform; normalised retrieval stays at 1.000.
+  Δ = **+0.744**, CI95 [+0.702, +0.784].
+- **Invariance alone is insufficient:** normalised retrieval without restoration
+  finds the correct motif every time yet forecasts no better than the series mean
+  (nmse 0.75→1.87). Restoration Δnmse = **−1.508**, CI95 [−1.71, −1.272].
+- **Restoration is exactly affine-equivariant:** `znorm+restore` error is constant to
+  **8.7 × 10⁻¹⁹** across the whole (a, b) grid; the residual is the noise floor.
+- **Limitation found, reported not fixed (rules 9, 12):** the frozen config uses
+  `scale="mean"`, which is *exactly scale*-equivariant but has **no location term**.
+  Under an offset its nmse degrades 291× (0.00067 → 0.195) and hit rate falls to
+  0.580. Not acted on — changing the frozen scale after seeing results would be
+  test-driven tuning, and the M5 test split is consumed.
+- Makes **no** end-to-end accuracy claim; the recorded negatives stand unchanged.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
