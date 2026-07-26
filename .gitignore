@@ -26,6 +26,12 @@ hf_token*
 .claude/mcp-auth*
 .claude/*.local.*
 
+# Agent/skill machinery installed per-machine, not part of the project. The six
+# project skills under .claude/skills/ that ARE part of it are tracked by name.
+.agents/
+skills-lock.json
+.claude/skills/notebooklm
+
 # ---------------------------------------------------------------------------
 # Python environments & caches
 # ---------------------------------------------------------------------------
