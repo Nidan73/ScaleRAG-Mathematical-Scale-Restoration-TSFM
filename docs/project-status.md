@@ -206,6 +206,32 @@ reaches it). Nothing is selected or tuned; frozen retrieval is imported from
   is inconsistent for them, so the reported intervals are indicative, not calibrated.
   Point estimates are the result. One origin, one 1,000-series subset.
 
+## Cross-dataset gate transfer (2026-07-26)
+
+Fills a cell the project had never tested and that this literature treats as table
+stakes (TS-RAG trains its ARM on a multi-domain corpus and applies it zero-shot).
+Validation windows only; consumed M5 test split untouched; nothing selected from the
+outcome. Detail: `docs/gate-transfer-report.md`; code `scripts/gate_transfer_run.py`.
+
+- **The gate transfers, asymmetrically.** Favorita→M5 is free: −0.13%, CI [−0.39,
+  +0.12], **includes 0**. M5→Favorita costs **−1.27%**, CI [−2.01, −0.61], excludes 0.
+  Both directions still beat untrained `fixed_0.5` fusion (+0.95% / +0.65%).
+- Plausible reading: an M5-trained gate learns to *trust* retrieval, which is
+  expensive on Favorita where retrieval is a liability; a Favorita-trained gate is
+  already sceptical, which is merely suboptimal on M5.
+- **On Favorita retrieval is a net liability and only the gate rescues it.**
+  `retrieval_only` 0.67055 and `fixed_0.5` 0.62342 are both *worse* than
+  `chronos_only` 0.61689; only `gate_in_domain` 0.61162 gets below it. On dense data
+  the gate's job is suppressing a harmful signal, not blending two useful ones.
+- **Incidental, and it touches recorded results: the "3 gate seeds" carry zero
+  dispersion.** Seed SD is exactly 0.0 everywhere. The frozen gate has
+  `subsample=1.0` / `colsample_bytree=1.0`, so it is deterministic and `random_state`
+  is inert (verified directly: seeds 42/43/44 give bit-identical predictions). Phase
+  9/10 "averaged over 3 gate seeds" is an average of three identical numbers and is
+  **not** evidence of robustness to gate initialisation. No recorded number changes —
+  the paired-bootstrap CIs over series are the real uncertainty estimate — but the
+  seed-averaging must not be cited as dispersion.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
