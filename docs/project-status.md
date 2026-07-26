@@ -149,6 +149,35 @@ scored separately. 5 seeds, paired bootstrap CIs. Full detail:
   test-driven tuning, and the M5 test split is consumed.
 - Makes **no** end-to-end accuracy claim; the recorded negatives stand unchanged.
 
+## Retrieval-to-forecasting gap explained (2026-07-26)
+
+Post-hoc attribution of the **already-stored** Phase-11A ETTm2 forecasts — no model
+run, no dataset opened, no config selected. Answers why +85.4% retrieval MSE does
+not become an end-to-end gain. Detail: `docs/retrieval-forecasting-gap.md`; code
+`src/graphroute_ts/error_decomposition.py` + `scripts/error_decomposition_run.py`.
+
+The shape floor is the least-squares affine correction of the retrieved mean onto
+the realised future — the minimiser over all affine maps, so a true lower bound.
+
+- **The analogues are excellent.** Shape floor **0.0647** vs backbone **0.1486** on
+  ETTm2 test: optimally rescaled, retrieval would be **2.3× better than
+  Chronos-Bolt** (1.96× on val). Retrieval finds better futures than the TSFM.
+- **The magnitude correction is the bottleneck.** Restoration removes 2.56 of 2.93
+  MSE (87%), but the remaining **0.373 is 5.8× the shape floor and 2.5× the
+  backbone's total error**. Only **14.8%** of the restored retrieval's error is
+  shape; 85.2% is unrecovered magnitude.
+- **Hence the gap.** The retrieval branch arrives at fusion 2.95× worse than the
+  backbone, so any real weight hurts: optimal weight 0.118 vs frozen 0.25, and the
+  shipped blend is significantly worse than the backbone (+0.0013, CI [+0.0005,
+  +0.0021]). Same pattern on val (0.057 vs 0.25; +0.0050).
+- **Mechanism:** `scale="mean"` has no location term (see the affine probe above),
+  and ETTm2 is train-normalised hence zero-centred — where a mean denominator is
+  both degenerate and unable to express the shift.
+- **Not acted on.** The implied fix (`znorm`) is not tested: no `znorm` variant is
+  stored, and selecting a scale strategy after seeing test attribution is
+  test-driven tuning (rules 9, 12). Needs fresh pre-registration. The optimal
+  fusion weight is likewise diagnostic only. No recorded negative changes.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
