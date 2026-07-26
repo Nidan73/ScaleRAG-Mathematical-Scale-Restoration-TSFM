@@ -44,7 +44,7 @@ Foundation Models** — augment a **frozen** Chronos-2 backbone with scale-aware
 temporal retrieval + a learned uncertainty-aware **gated fusion**. The cross-dataset
 graph-routing negative is a secondary empirical contribution.
 
-## Current status (Phases 1–10 complete)
+## Current status (Phases 1–11A complete, plus a Phase-12 diagnostic pass)
 
 - Controlled study **finished**; method + hyperparameters **frozen**.
 - **Frozen config:** `ScaleRAG_gated` = mean/L2/category-filter/k=20 + scale
@@ -91,6 +91,47 @@ graph-routing negative is a secondary empirical contribution.
   forecasting on dense continuous channels.
 - **Deferred (do NOT start unless explicitly asked as a *secondary* efficiency study):**
   adapter/LoRA (Phase 9 Part D). Never use LoRA to rescue the retrieval headline.
+
+## Phase 12 — diagnostic pass (2026-07-26/27). Read before touching the paper.
+
+Four analyses, all on validation or already-stored predictions. No consumed split was
+re-opened and no blocked dataset was touched. Each has a report in `docs/` and a
+regenerable JSON in `reports/`.
+
+- **Affine probe** (`src/graphroute_ts/affine_probe.py`, `docs/affine-probe-report.md`):
+  synthetic only. Normalised retrieval is exactly affine-invariant; restoration is
+  exactly equivariant (error constant to 8.7e-19 across the grid) while raw retrieval
+  collapses to 0.176 against a 0.083 chance rate. **Limitation found and NOT fixed:**
+  the frozen `scale="mean"` has no location term, so an offset degrades it 291x.
+- **Error decomposition** (`src/graphroute_ts/error_decomposition.py`,
+  `docs/retrieval-forecasting-gap.md`): post-hoc over stored ETTm2 forecasts. The
+  shape floor is 0.0647 against a backbone at 0.1486, so optimally rescaled the
+  analogues would be 2.3x better than the backbone. Only 14.8% of the restored
+  branch's error is shape; **85.2% is unrecovered magnitude**. Explains the gap.
+- **Regime band** (`src/graphroute_ts/regime.py`, `docs/regime-threshold-report.md`):
+  **corrects a claim the paper used to make.** "Retrieval utility tracks
+  intermittency" implies monotonicity and is false. Over 50 non-overlapping origins
+  the win rate is an inverted U: 0.220±0.009 densest, 0.794±0.006 peak, 0.472±0.007
+  sparsest, band [0.33, 0.95]. Also: the six gate features are near-collinear
+  (intermittency vs log-volume −0.97), so the gate has ~1–2 effective dimensions.
+- **Gate transfer** (`scripts/gate_transfer_run.py`, `docs/gate-transfer-report.md`):
+  transfers asymmetrically. Favorita→M5 free (CI includes 0), M5→Favorita −1.27%.
+  **Incidental and it touches recorded results:** the "3 gate seeds" carry zero
+  dispersion, because `subsample=1.0`/`colsample_bytree=1.0` makes LightGBM
+  deterministic. Phase 9/10 seed-averaging must NOT be cited as robustness.
+
+**Pre-registered, NOT executed:** `docs/znorm-preregistration.md`. The implied fix for
+the 85.2% magnitude residual is `znorm`. M5 test is consumed, ETTm2 test was spent on
+the Phase-11A gate, Phase-11B stays shut, so the single legal confirmation split is
+**Favorita test, origin 972** (verified unconsumed). Do not run it without reading the
+pre-registration first.
+
+**Prior art, verified against a 101-source corpus** (`docs/literature-verification.md`):
+the restoration operation is **not** novel. RAFT does level removal and restoration on
+raw numeric windows, RAID does full mean/variance restoration of retrieved
+trajectories, and kNN-MTS does parameter-free convex fusion onto a frozen backbone.
+The composition is what is unclaimed elsewhere. Do not reinstate a headline claiming
+the mechanism.
 
 ## Datasets (both ingested, leakage-safe, gitignored)
 

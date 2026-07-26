@@ -5,13 +5,13 @@ or build locally; nothing outside it is referenced.
 
 ```
 main.tex        the entire manuscript (preamble, all 5 sections, all 3 tables)
-references.bib  22 entries
+references.bib  25 entries
 figures/        architecture.pdf + fig1_motivation.pdf … fig6_sensitivity.pdf
                 architecture.drawio — editable source for architecture.pdf
 svjour3.cls     Springer journal class, v3.2
 svglov3.clo     the class's default layout option file (loaded by svjour3)
 spmpsci.bst     Springer maths/CS BibTeX style
-main.pdf        last local build (10 pages)
+main.pdf        last local build (11 pages)
 ```
 
 ## Build
@@ -22,7 +22,29 @@ pdflatex main && bibtex main && pdflatex main && pdflatex main
 
 Verified on TeX Live 2026: **0 overfull hboxes, 0 overfull vboxes, 0 undefined
 references, 0 undefined citations, 0 LaTeX warnings, 0 BibTeX warnings**,
-22/22 bibliography entries, 10 pages.
+25/25 bibliography entries, 11 pages.
+
+## Author block
+
+The author block is anonymised. The same study is under anonymous review
+elsewhere and this repository is public, so a named block on a near-identically
+titled manuscript would defeat that anonymity. A generic camera-ready template
+sits directly beneath it in `main.tex`; the real values are deliberately not
+kept in this file, because a commented-out address is still greppable.
+
+## Prior art in Related Work
+
+Section 2 now credits three papers that between them cover the individual
+ingredients of the method, and says so explicitly rather than claiming the
+operation as new. RAFT subtracts a level offset from the query and from every
+retrieved patch and restores the query's offset. RAID normalises a retrieved
+trajectory by its own mean and standard deviation before mapping the aggregate
+onto a target scale, though it predicts those target statistics with a trained
+network because it addresses cold start. kNN-MTS augments a frozen forecaster
+with a retrieval branch carrying no trainable parameters and the same convex
+blend. What the literature does not contain is the composition, and that is
+what the paper claims. See `docs/literature-verification.md` for the checks
+behind these statements.
 
 ## Why the class files are vendored here
 

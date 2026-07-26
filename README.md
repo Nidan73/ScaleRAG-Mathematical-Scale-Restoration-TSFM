@@ -26,7 +26,7 @@ controlled negative result.
 
 The [`paper/`](paper/) folder holds the full write-up of the study as a Springer
 *Applied Intelligence* submission: `main.tex`, `references.bib`, six figures, and the
-compiled 10-page `main.pdf`. It is self-contained and ships its own `svjour3.cls`,
+compiled 11-page `main.pdf`. It is self-contained and ships its own `svjour3.cls`,
 `svglov3.clo` and `spmpsci.bst`, because Springer distributes that class only inside its
 own author template rather than through CTAN or Overleaf. Upload the folder to Overleaf
 as-is, or build it with:
@@ -37,6 +37,14 @@ cd paper && pdflatex main && bibtex main && pdflatex main && pdflatex main
 
 See `paper/README.md` for the build verification, the figure-sizing rules, and one known
 issue with the architecture diagram.
+
+The diagnostic analyses behind the current framing are written up separately:
+`docs/affine-probe-report.md` (controlled synthetic validation of the mechanism),
+`docs/retrieval-forecasting-gap.md` (why an 85.4% retrieval gain does not become a
+forecasting gain), `docs/regime-threshold-report.md` (where retrieval stops helping,
+over 50 forecast origins), `docs/gate-transfer-report.md` (cross-dataset gate
+transfer), `docs/literature-verification.md` (prior-art checks behind the novelty
+claim), and `docs/znorm-preregistration.md` (a frozen, unexecuted follow-up).
 
 ## Requirements
 
