@@ -6,6 +6,16 @@ row `0.70 / −0.55 / −0.65 / −0.19` — but names **no value** of any prope
 retrieval ceases to pay. That leaves "retrieval sometimes helps" as the state of the
 art. This estimates the crossing.
 
+**The granularity gap is the reason this is possible.** TS-RAG computes each
+property as an average *over a whole dataset* and then correlates across datasets:
+its Table 13 is a linear Pearson coefficient over **four points** (ETTh1, ETTh2,
+ETTm1, ETTm2). Four dataset-level averages and a linear coefficient cannot express a
+non-monotone relationship even if one is present. The analysis below is per series
+(n = 1,000) and rank-based, which is what makes the inverted U visible at all. The
+finding is therefore not a contradiction of TS-RAG's result so much as a consequence
+of measuring at a finer grain. Verified against the source, see
+`docs/literature-verification.md`.
+
 **Method.** Per series at the M5 **validation** origin (d_1886–d_1913), retrieval
 utility is `U = RMSSE(Chronos-2) − RMSSE(scale-restored retrieval)`; `U > 0` means
 retrieval beat the frozen backbone on that series. The boundary is where
