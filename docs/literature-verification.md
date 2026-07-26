@@ -39,7 +39,60 @@ demonstrated with a dedicated ablation row, so `docs/gate-transfer-report.md` is
 correct to treat cross-dataset transfer as table stakes rather than a
 differentiator.
 
-## Prior-art sweep, and why it is weak evidence
+## Second sweep, after expanding the corpus (2026-07-27)
+
+The first sweep's negative rested on a corpus with known holes, so sixteen sources
+were added: RAFT, ReTime, TimeRAG, RATD, kNN-MTS, Spectral RAG, Retrieval Mechanisms
+vs Long-Context, Global Temporal Retrieval, two normalization papers, k-NN and analog
+forecasting, and three intermittent-demand papers.
+
+**A methodological trap, recorded because it nearly produced a false negative a
+second time.** arXiv `/abs/` pages ingest as **abstract and metadata only**: RAFT's
+landing page gave 6,760 characters against 108,339 for a `/pdf/` source. A sweep run
+against those returned "not covered" for every question, which reads as absence of
+prior art but is absence of *text*. The papers were re-added as `/pdf/` URLs (35k to
+88k characters each) before any conclusion was drawn. Broad queries over a 130-source
+notebook are also unreliable, since retrieval surfaces only a subset; the findings
+below come from queries **scoped to specific source ids**.
+
+### What the expanded corpus found
+
+Two papers materially narrow the novelty claim.
+
+**RAFT** (arXiv 2505.04163) retrieves over **raw numeric windows** by Pearson
+correlation, chosen "to exclude the effects of scale variations", and already
+performs the location half of our operation. It treats the final value of each patch
+as an offset and subtracts it, `x̂ = {xt − xL}`, from the query and from every
+retrieved patch, then restores the query's offset to produce the forecast,
+`y = {ŷt + xL}`. It divides out **no** magnitude statistic, its backbone is a shallow
+MLP trained from scratch rather than a frozen foundation model, and it evaluates only
+on dense data (ETT, Electricity, Exchange, Illness, Solar, Traffic, Weather).
+
+**kNN-MTS** (arXiv 2505.11625) augments a **frozen** pretrained forecaster with a
+retrieval branch that "does not introduce any trainable parameters", fusing through
+`Ŷ_final = (1−λ)Ŷ + λ Σ w_j Y_j`, the same convex blend we use. It retrieves over
+learned embeddings and uses the retrieved futures **unmodified**, with no rescaling.
+
+**ReTime** (arXiv 2209.13525) is not prior art here: its retrieval is relational
+(random walk with restart), it normalizes only globally at dataset level, it never
+rescales a retrieved segment, and it trains end to end.
+
+### Consequence for the novelty claim
+
+| Ingredient | Prior art |
+|---|---|
+| Scale-insensitive retrieval over raw numeric windows | RAFT (Pearson), TimeRAG (DTW) |
+| Remove level, restore the query's level | **RAFT** |
+| Remove mean and variance of a retrieved trajectory, restore both | **RAID** (statistics predicted, not measured) |
+| Frozen backbone, zero-parameter retrieval, convex fusion | **kNN-MTS** |
+| All of the above together | none found |
+
+Every ingredient is published. The composition is not. The manuscripts now say so
+explicitly and claim the composition and its empirical characterization rather than
+the operation. Citing only RAID, as an earlier draft did, would have read as
+selective citation to any reviewer who knows RAFT.
+
+## First sweep, and why it was weak evidence
 
 A systematic sweep asked for **any** source beyond TS-RAG, TimeRAF, SARAF, SERAF,
 TRACE and RAID performing normalize-then-restore on a retrieved segment, phrased to
@@ -59,9 +112,10 @@ the retrieved future.
    are absent entirely, and the RevIN paper is cited by others rather than present.
 3. **Absence from 98 sources is not absence from the field.**
 
-Before any novelty claim goes to a reviewer, add at minimum: the RAFT, ReTime,
-TimeRAG and RATD papers, the RevIN paper itself, and a sample of the analog and
-intermittent-demand literature. The claim as currently stated is "no prior art in
+Those gaps were closed on 2026-07-27, see the second sweep above. Still absent in
+usable form: the RevIN paper (the OpenReview add returned a browser-verification
+page), and the analog, k-NN and intermittent-demand papers, whose full texts are
+loaded but which no scoped query has yet interrogated. The claim as currently stated is "no prior art in
 the surveyed corpus", and it should not be strengthened beyond that without them.
 
 ## Method note
