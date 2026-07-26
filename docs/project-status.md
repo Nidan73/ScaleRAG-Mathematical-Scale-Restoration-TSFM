@@ -178,6 +178,34 @@ the realised future — the minimiser over all affine maps, so a true lower boun
   test-driven tuning (rules 9, 12). Needs fresh pre-registration. The optimal
   fusion weight is likewise diagnostic only. No recorded negative changes.
 
+## Retrieval-utility regime band (2026-07-26)
+
+Estimates where retrieval stops paying, on the M5 **validation** split only (the
+consumed test split is untouched, and the script refuses to run if the eval origin
+reaches it). Nothing is selected or tuned; frozen retrieval is imported from
+`scripts/scalerag_eval.py`. Detail: `docs/regime-threshold-report.md`; code
+`src/graphroute_ts/regime.py` + `scripts/regime_threshold_run.py`.
+
+- **The relationship is NOT monotone — this corrects a current paper claim.**
+  "Retrieval utility tracks intermittency" implies monotonicity; the win rate is an
+  inverted U, rising from 0.19 (dense, ΔU −0.103) to 0.84 at zero-fraction 0.62–0.71,
+  then falling back to **0.50 at 0.93–1.00 (ΔU −0.073)**. Retrieval fails at *both*
+  extremes: dense series need no help, near-empty series offer no matchable signal.
+- **Band, not threshold.** Intermittency band **[0.359, 0.964]**, win rate **0.74
+  inside vs 0.34 outside**. Retrieval beats Chronos-2 on 62.3% of series overall
+  (mean ΔU +0.0115 RMSSE). All six diagnostics are bounded above.
+- **The six gate features are nearly one feature.** Intermittency ↔ log_volume
+  **−0.97**, log_volume ↔ chronos_uncertainty **+0.94**, nn_dist ↔ scale_spread
+  **+0.85**. One latent demand-level axis drives all of them, so the frozen LightGBM
+  gate has ~1–2 effective dimensions, not 6 — a plausible reason it beats fixed
+  fusion by only ~1.1%.
+- `retr_nn_dist` has the strongest marginal correlation (+0.287) but its sign is
+  confounded, not meaningful: it correlates 0.65 with intermittency and 0.85 with
+  scale-spread, so it proxies sparsity. Do not read it as "distant neighbours help".
+- **Caveat:** isotonic crossings have cube-root asymptotics and the naive bootstrap
+  is inconsistent for them, so the reported intervals are indicative, not calibrated.
+  Point estimates are the result. One origin, one 1,000-series subset.
+
 ## Deliverables
 
 - Code: full pipeline through Phase 11A (see `CLAUDE.md` architecture); ruff + mypy
